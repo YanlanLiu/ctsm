@@ -8,12 +8,18 @@ module dynSubgridDriverMod
   ! High-level routines for dynamic subgrid areas (prescribed transient Patches, CNDV, and
   ! dynamic landunits).
   !
+  !PBuotte: added code to control prescribed bark beetle mortality 11/15 2016
+  !
   ! !USES:
   use decompMod                    , only : bounds_type, BOUNDS_LEVEL_PROC, BOUNDS_LEVEL_CLUMP
   use decompMod                    , only : get_proc_clumps, get_clump_bounds
   use dynSubgridControlMod         , only : get_flanduse_timeseries
   use dynSubgridControlMod         , only : get_do_transient_pfts, get_do_transient_crops
   use dynSubgridControlMod         , only : get_do_harvest
+  !PBuotte begin prescribed BB
+  use dynSubgridControlMod         , only : get_do_presc_bb
+  use dynHarvestMod                , only : dynPrescBB_init, dynPrescBB_interp
+  !PBuotte end prescribed BB
   use dynPriorWeightsMod           , only : prior_weights_type
   use dynPatchStateUpdaterMod      , only : patch_state_updater_type
   use dynColumnStateUpdaterMod     , only : column_state_updater_type
@@ -120,6 +126,14 @@ contains
     if (get_do_harvest()) then
        call dynHarvest_init(bounds_proc, harvest_filename=get_flanduse_timeseries())
     end if
+
+    !PBuotte: begin prescribed BB
+    ! Initialize variables for prescribed BB mortality. Note that, currently,
+    !the BB mortality data are on the flanduse_timeseries file.
+    if (get_do_presc_bb()) then
+       call dynPrescBB_init(bounds_proc, beetle_filename=get_flanduse_timeseries())
+    end if
+    !PBuotte: end prescribed BB
 
     ! ------------------------------------------------------------------------
     ! Set initial subgrid weights for aspects that are read from file. This is relevant
@@ -247,6 +261,12 @@ contains
     if (get_do_harvest()) then
        call dynHarvest_interp(bounds_proc)
     end if
+
+    !PBuotte: begin prescribed BB
+    if (get_do_presc_bb()) then
+       call dynPrescBB_interp(bounds_proc)
+    end if
+    !PBuotte: end prescribed BB
 
     ! ==========================================================================
     ! Do land cover change that does not require I/O

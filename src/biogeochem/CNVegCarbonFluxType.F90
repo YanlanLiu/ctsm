@@ -224,6 +224,41 @@ module CNVegCarbonFluxType
      real(r8), pointer :: livestemc_to_deadstemc_patch              (:)     ! live stem C turnover (gC/m2/s)
      real(r8), pointer :: livecrootc_to_deadcrootc_patch            (:)     ! live coarse root C turnover (gC/m2/s)
 
+    ! PBuotte: bark beetle mortality fluxes
+    real(r8), pointer ::  bb_frootc_to_litter_patch                 (:)     ! (gC/m2/sec) fine root fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_liverootc_to_litter_patch              (:)     ! (gC/m2/sec) live root fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_deadrootc_to_litter_patch              (:)     ! (gC/m2/sec) dead root fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_xsmrpool_to_atm_patch                  (:)     ! (gC/m2/sec) excess MR pool to atmosphere due to beetle kill
+    real(r8), pointer ::  bb_leafc_to_leafsnag1c_patch              (:)     ! (gC/m2/sec) leaf fluxes to held dead leaves due to beetle kill
+    real(r8), pointer ::  bb_livestemc_to_snag1c_patch              (:)     ! (gC/m2/sec) live stem fluxes to first year snag due to beetle kill
+    real(r8), pointer ::  bb_deadstemc_to_snag1c_patch              (:)     ! (gC/m2/sec) dead stem fluxes to first year snag due to beetle kill
+    real(r8), pointer ::  bb_deadstemc_to_prod10c_patch             (:)     ! (gC/m2/sec) dead stem fluxes to 10-yr product pool due to beetle kill
+    real(r8), pointer ::  bb_deadstemc_to_prod100c_patch            (:)     ! (gC/m2/sec) dead stem fluxes to 100-yr product pool due to beetle kill
+    real(r8), pointer ::  snag1c_to_snag2c_patch                    (:)     ! (gC/m2/sec) transfer from frist to second year snag pool
+    real(r8), pointer ::  snag2c_to_snag3c_patch                    (:)     ! (gC/m2/sec) transfer from second to third year snag pool
+    real(r8), pointer ::  snag3c_to_snag4c_patch                    (:)     ! (gC/m2/sec) transfer from third to fourth year snag pool
+    real(r8), pointer ::  snag4c_to_snag5c_patch                    (:)     ! (gC/m2/sec) transfer from fourth to fifth year snag pool
+    real(r8), pointer ::  snag5c_to_snag6c_patch                    (:)     ! (gC/m2/sec) transfer from fifth to sixth (final) year snag pool
+    real(r8), pointer ::  snag6c_to_litter_patch                    (:)     ! (gC/m2/sec) transfer from last snag pool to litter
+    real(r8), pointer ::  leafsnag1c_to_leafsnag2c_patch            (:)     ! (gC/m2/sec) transfer from frist to second year held dead leaves pool
+    real(r8), pointer ::  leafsnag2c_to_leafsnag3c_patch            (:)     ! (gC/m2/sec) transfer from second to third (final) year held dead leaves pool
+    real(r8), pointer ::  leafsnag3c_to_litter_patch                (:)     ! (gC/m2/sec) transfer from last held dead leaves pool to litter
+    real(r8), pointer ::  bb_frootc_storage_to_litter_patch         (:)     ! (gC/m2/sec) fine root storage fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_liverootc_storage_to_litter_patch      (:)     ! (gC/m2/sec) live root storage fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_deadrootc_storage_to_litter_patch      (:)     ! (gC/m2/sec) dead root storage fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_gresp_storage_to_litter_patch          (:)     ! (gC/m2/sec) growth respiration storage fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_leafc_storage_to_leafsnag1c_patch      (:)     ! (gC/m2/sec) leaf storage fluxes to held dead leaves due to beetle kill
+    real(r8), pointer ::  bb_livestemc_storage_to_snag1c_patch      (:)     ! (gC/m2/sec) live stem storage fluxes to first year snag due to beetle kill
+    real(r8), pointer ::  bb_deadstemc_storage_to_snag1c_patch      (:)     ! (gC/m2/sec) dead stem storage fluxes to first year snag due to beetle kill
+    real(r8), pointer ::  bb_frootc_xfer_to_litter_patch            (:)     ! (gC/m2/sec) fine root transfer fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_liverootc_xfer_to_litter_patch         (:)     ! (gC/m2/sec) live root transfer fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_deadrootc_xfer_to_litter_patch         (:)     ! (gC/m2/sec) dead root transfer fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_gresp_xfer_to_litter_patch             (:)     ! (gC/m2/sec) growth respiration transfer fluxes to litter due to beetle kill
+    real(r8), pointer ::  bb_leafc_xfer_to_leafsnag1c_patch         (:)     ! (gC/m2/sec) leaf transfer fluxes to held dead leaves due to beetle kill
+    real(r8), pointer ::  bb_livestemc_xfer_to_snag1c_patch         (:)     ! (gC/m2/sec) live stem transfer fluxes to first year snag due to beetle kill
+    real(r8), pointer ::  bb_deadstemc_xfer_to_snag1c_patch         (:)     ! (gC/m2/sec) dead stem transfer fluxes to first year snag due to beetle kill
+    ! PBuotte: end bark beetle addititons
+
      ! phenology: litterfall and crop fluxes
      real(r8), pointer :: phenology_c_to_litr_met_c_col             (:,:)   ! C fluxes associated with phenology (litterfall and crop) to litter metabolic pool (gC/m3/s)
      real(r8), pointer :: phenology_c_to_litr_cel_c_col             (:,:)   ! C fluxes associated with phenology (litterfall and crop) to litter cellulose pool (gC/m3/s)
@@ -245,6 +280,15 @@ module CNVegCarbonFluxType
      real(r8), pointer :: harvest_c_to_cwdc_col                     (:,:)   ! C fluxes associated with harvest to CWD pool (gC/m3/s)
      real(r8), pointer :: grainc_to_cropprodc_patch                 (:)     ! grain C to crop product pool (gC/m2/s)
      real(r8), pointer :: grainc_to_cropprodc_col                   (:)     ! grain C to crop product pool (gC/m2/s)
+
+     ! PBuotte: begin bark beetle mortality additions
+     real(r8), pointer :: beetle_c_to_litr_met_c_col               (:,:)   ! C fluxes associated with beetle mortality to litter metabolic pool (gC/m3/s)
+     real(r8), pointer :: beetle_c_to_litr_cel_c_col               (:,:)   ! C fluxes associated with beetle mortality to litter cellulose pool (gC/m3/s)
+     real(r8), pointer :: beetle_c_to_litr_lig_c_col               (:,:)   ! C fluxes associated with beetle mortality to litter lignin pool (gC/m3/s)
+     real(r8), pointer :: beetle_c_to_cwdc_col                     (:,:)   ! C fluxes associated with beetle mortality to CWD pool (gC/m3/s)
+     real(r8), pointer :: bb_deadstemc_to_prod10c_col              (:)     ! dead stem C harvest of beetle  mortality to 10-year product pool (gC/m2/s)
+     real(r8), pointer :: bb_deadstemc_to_prod100c_col             (:)     ! dead stem C harvest of beetle mortality to 100-year product pool (gC/m2/s)
+     ! PBuotte: end bark beetle mortality additions
 
      ! fire fluxes
      real(r8), pointer :: m_decomp_cpools_to_fire_vr_col            (:,:,:) ! vertically-resolved decomposing C fire loss (gC/m3/s)
@@ -320,6 +364,10 @@ module CNVegCarbonFluxType
      real(r8), pointer :: somfire_col                               (:)     ! (gC/m2/s) soil organic matter fire losses
      real(r8), pointer :: totfire_col                               (:)     ! (gC/m2/s) total ecosystem fire losses
      real(r8), pointer :: hrv_xsmrpool_to_atm_col                   (:)     ! (gC/m2/s) excess MR pool harvest mortality (p2c)
+
+     ! PBuotte: beetle mortality
+     real(r8), pointer :: wood_beetlec_patch                       (:)     ! (gC/m2/s) patch-level beetle-killed wood to snag pool
+     real(r8), pointer :: bb_xsmrpool_to_atm_col                   (:)     ! (gC/m2/s) excess MR pool beetle mortality (p2c)
 
      ! fire code
      real(r8), pointer :: fire_closs_patch                          (:)     ! (gC/m2/s) total fire C loss 
@@ -591,6 +639,41 @@ contains
     allocate(this%xsmrpool_recover_patch                    (begp:endp)) ; this%xsmrpool_recover_patch                    (:) = nan
     allocate(this%xsmrpool_c13ratio_patch                   (begp:endp)) ; this%xsmrpool_c13ratio_patch                   (:) = nan
 
+    ! PBuotte: begin bark beetle additions
+    allocate(this%bb_leafc_to_leafsnag1c_patch              (begp:endp)) ; this%bb_leafc_to_leafsnag1c_patch              (:) = nan
+    allocate(this%bb_leafc_storage_to_leafsnag1c_patch      (begp:endp)) ; this%bb_leafc_storage_to_leafsnag1c_patch      (:) = nan
+    allocate(this%bb_leafc_xfer_to_leafsnag1c_patch         (begp:endp)) ; this%bb_leafc_xfer_to_leafsnag1c_patch         (:) = nan
+    allocate(this%bb_livestemc_to_snag1c_patch              (begp:endp)) ; this%bb_livestemc_to_snag1c_patch              (:) = nan
+    allocate(this%bb_livestemc_storage_to_snag1c_patch      (begp:endp)) ; this%bb_livestemc_storage_to_snag1c_patch      (:) = nan
+    allocate(this%bb_livestemc_xfer_to_snag1c_patch         (begp:endp)) ; this%bb_livestemc_xfer_to_snag1c_patch         (:) = nan
+    allocate(this%bb_deadstemc_to_snag1c_patch              (begp:endp)) ; this%bb_deadstemc_to_snag1c_patch              (:) = nan
+    allocate(this%bb_deadstemc_storage_to_snag1c_patch      (begp:endp)) ; this%bb_deadstemc_storage_to_snag1c_patch      (:) = nan
+    allocate(this%bb_deadstemc_xfer_to_snag1c_patch         (begp:endp)) ; this%bb_deadstemc_xfer_to_snag1c_patch         (:) = nan
+    allocate(this%bb_deadstemc_to_prod10c_patch             (begp:endp)) ; this%bb_deadstemc_to_prod10c_patch             (:) = nan
+    allocate(this%bb_deadstemc_to_prod100c_patch            (begp:endp)) ; this%bb_deadstemc_to_prod100c_patch            (:) = nan
+    allocate(this%bb_frootc_to_litter_patch                 (begp:endp)) ; this%bb_frootc_to_litter_patch                 (:) = nan
+    allocate(this%bb_frootc_storage_to_litter_patch         (begp:endp)) ; this%bb_frootc_storage_to_litter_patch         (:) = nan
+    allocate(this%bb_frootc_xfer_to_litter_patch            (begp:endp)) ; this%bb_frootc_xfer_to_litter_patch            (:) = nan
+    allocate(this%bb_liverootc_to_litter_patch              (begp:endp)) ; this%bb_liverootc_to_litter_patch              (:) = nan
+    allocate(this%bb_liverootc_storage_to_litter_patch      (begp:endp)) ; this%bb_liverootc_storage_to_litter_patch      (:) = nan
+    allocate(this%bb_liverootc_xfer_to_litter_patch         (begp:endp)) ; this%bb_liverootc_xfer_to_litter_patch         (:) = nan
+    allocate(this%bb_deadrootc_to_litter_patch              (begp:endp)) ; this%bb_deadrootc_to_litter_patch              (:) = nan
+    allocate(this%bb_deadrootc_storage_to_litter_patch      (begp:endp)) ; this%bb_deadrootc_storage_to_litter_patch      (:) = nan
+    allocate(this%bb_deadrootc_xfer_to_litter_patch         (begp:endp)) ; this%bb_deadrootc_xfer_to_litter_patch         (:) = nan
+    allocate(this%bb_gresp_storage_to_litter_patch          (begp:endp)) ; this%bb_gresp_storage_to_litter_patch          (:) = nan
+    allocate(this%bb_gresp_xfer_to_litter_patch             (begp:endp)) ; this%bb_gresp_xfer_to_litter_patch             (:) = nan
+    allocate(this%bb_xsmrpool_to_atm_patch                  (begp:endp)) ; this%bb_xsmrpool_to_atm_patch                  (:) = nan
+    allocate(this%snag1c_to_snag2c_patch                    (begp:endp)) ; this%snag1c_to_snag2c_patch                    (:) = nan
+    allocate(this%snag2c_to_snag3c_patch                    (begp:endp)) ; this%snag2c_to_snag3c_patch                    (:) = nan
+    allocate(this%snag3c_to_snag4c_patch                    (begp:endp)) ; this%snag3c_to_snag4c_patch                    (:) = nan
+    allocate(this%snag4c_to_snag5c_patch                    (begp:endp)) ; this%snag4c_to_snag5c_patch                    (:) = nan
+    allocate(this%snag5c_to_snag6c_patch                    (begp:endp)) ; this%snag5c_to_snag6c_patch                    (:) = nan
+    allocate(this%snag6c_to_litter_patch                    (begp:endp)) ; this%snag6c_to_litter_patch                    (:) = nan
+    allocate(this%leafsnag1c_to_leafsnag2c_patch            (begp:endp)) ; this%leafsnag1c_to_leafsnag2c_patch            (:) = nan
+    allocate(this%leafsnag2c_to_leafsnag3c_patch            (begp:endp)) ; this%leafsnag2c_to_leafsnag3c_patch            (:) = nan
+    allocate(this%leafsnag3c_to_litter_patch                (begp:endp)) ; this%leafsnag3c_to_litter_patch                (:) = nan
+    ! PBuotte: end bark beetle additions
+
     allocate(this%cpool_to_grainc_patch                     (begp:endp)) ; this%cpool_to_grainc_patch                     (:) = nan
     allocate(this%cpool_to_grainc_storage_patch             (begp:endp)) ; this%cpool_to_grainc_storage_patch             (:) = nan
     allocate(this%livestemc_to_litter_patch                 (begp:endp)) ; this%livestemc_to_litter_patch                 (:) = nan
@@ -629,6 +712,13 @@ contains
     allocate(this%harvest_c_to_litr_lig_c_col       (begc:endc,1:nlevdecomp_full)); this%harvest_c_to_litr_lig_c_col  (:,:)=nan
     allocate(this%harvest_c_to_cwdc_col             (begc:endc,1:nlevdecomp_full)); this%harvest_c_to_cwdc_col        (:,:)=nan
 
+    ! PBuotte: begin bark beetle additions
+    allocate(this%beetle_c_to_litr_met_c_col       (begc:endc,1:nlevdecomp_full)); this%beetle_c_to_litr_met_c_col  (:,:)=nan
+    allocate(this%beetle_c_to_litr_cel_c_col       (begc:endc,1:nlevdecomp_full)); this%beetle_c_to_litr_cel_c_col  (:,:)=nan
+    allocate(this%beetle_c_to_litr_lig_c_col       (begc:endc,1:nlevdecomp_full)); this%beetle_c_to_litr_lig_c_col  (:,:)=nan
+    allocate(this%beetle_c_to_cwdc_col             (begc:endc,1:nlevdecomp_full)); this%beetle_c_to_cwdc_col        (:,:)=nan
+    ! PBuotte: end bark beetle additions
+
     allocate(this%dwt_slash_cflux_col               (begc:endc))                  ; this%dwt_slash_cflux_col (:) =nan
     allocate(this%dwt_frootc_to_litr_met_c_col      (begc:endc,1:nlevdecomp_full)); this%dwt_frootc_to_litr_met_c_col (:,:)=nan
     allocate(this%dwt_frootc_to_litr_cel_c_col      (begc:endc,1:nlevdecomp_full)); this%dwt_frootc_to_litr_cel_c_col (:,:)=nan
@@ -651,6 +741,11 @@ contains
     allocate(this%cwdc_hr_col                       (begc:endc))                  ; this%cwdc_hr_col               (:)  =nan
     allocate(this%cwdc_loss_col                     (begc:endc))                  ; this%cwdc_loss_col             (:)  =nan
     allocate(this%litterc_loss_col                  (begc:endc))                  ; this%litterc_loss_col          (:)  =nan
+
+    ! PBuotte: begin bark beetle additions
+    allocate(this%bb_deadstemc_to_prod10c_col       (begc:endc))                  ; this%bb_deadstemc_to_prod10c_col  (:) = nan
+    allocate(this%bb_deadstemc_to_prod100c_col      (begc:endc))                  ; this%bb_deadstemc_to_prod100c_col (:) = nan
+    ! PBuotte: end bark beetle additions
 
     allocate(this%grainc_to_cropprodc_patch(begp:endp))
     this%grainc_to_cropprodc_patch(:) = nan
@@ -679,6 +774,8 @@ contains
     allocate(this%bgnpp_patch             (begp:endp)) ; this%bgnpp_patch             (:) = nan
     allocate(this%litfall_patch           (begp:endp)) ; this%litfall_patch           (:) = nan
     allocate(this%wood_harvestc_patch     (begp:endp)) ; this%wood_harvestc_patch     (:) = nan
+    ! PBuotte: added beetle mortality
+    allocate(this%wood_beetlec_patch      (begp:endp)) ; this%wood_beetlec_patch      (:) = nan
     allocate(this%slash_harvestc_patch    (begp:endp)) ; this%slash_harvestc_patch    (:) = nan
     allocate(this%cinputs_patch           (begp:endp)) ; this%cinputs_patch           (:) = nan
     allocate(this%coutputs_patch          (begp:endp)) ; this%coutputs_patch          (:) = nan
@@ -697,6 +794,8 @@ contains
     allocate(this%fire_closs_col          (begc:endc)) ; this%fire_closs_col          (:) = nan
     allocate(this%wood_harvestc_col       (begc:endc)) ; this%wood_harvestc_col       (:) = nan
     allocate(this%hrv_xsmrpool_to_atm_col (begc:endc)) ; this%hrv_xsmrpool_to_atm_col (:) = nan 
+    ! PBuotte: added beetle mortality
+    allocate(this%bb_xsmrpool_to_atm_col  (begc:endc)) ; this%bb_xsmrpool_to_atm_col  (:) = nan
     allocate(this%tempsum_npp_patch       (begp:endp)) ; this%tempsum_npp_patch       (:) = nan
     allocate(this%annsum_npp_patch        (begp:endp)) ; this%annsum_npp_patch        (:) = nan
     allocate(this%tempsum_litfall_patch   (begp:endp)) ; this%tempsum_litfall_patch   (:) = nan
@@ -1566,6 +1665,13 @@ contains
         call hist_addfld1d (fname='WOOD_HARVESTC', units='gC/m^2/s', &
              avgflag='A', long_name='wood harvest carbon (to product pools)', &
              ptr_patch=this%wood_harvestc_patch)
+
+        ! PBuotte: begin bark beetle additions
+        this%wood_beetlec_patch(begp:endp) = spval
+        call hist_addfld1d (fname='WOOD_BEETLEC', units='gC/m^2/s', &
+             avgflag='A', long_name='wood carbon to snag pools from beetle kill', &
+             ptr_patch=this%wood_beetlec_patch)
+        ! PBuotte: end bark beetle additions
 
         this%slash_harvestc_patch(begp:endp) = spval
         call hist_addfld1d (fname='SLASH_HARVESTC', units='gC/m^2/s', &
@@ -2799,6 +2905,11 @@ contains
 
     if (carbon_type == 'c12') then
 
+       this%cwdc_hr_col(begc:endc) = spval
+       call hist_addfld1d (fname='CWDC_HR', units='gC/m^2/s', &
+            avgflag='A', long_name='coarse woody debris C heterotrophic respiration', &
+            ptr_col=this%cwdc_hr_col)
+
        this%cwdc_loss_col(begc:endc) = spval
        call hist_addfld1d (fname='CWDC_LOSS', units='gC/m^2/s', &
             avgflag='A', long_name='coarse woody debris C loss', &
@@ -3666,6 +3777,41 @@ contains
        this%hrv_gresp_xfer_to_litter_patch(i)            = value_patch        
        this%hrv_xsmrpool_to_atm_patch(i)                 = value_patch
 
+       ! PBuotte: begin bark beetle additions
+       this%bb_leafc_to_leafsnag1c_patch(i)              = value_patch
+       this%bb_leafc_storage_to_leafsnag1c_patch(i)      = value_patch
+       this%bb_leafc_xfer_to_leafsnag1c_patch(i)         = value_patch
+       this%bb_livestemc_to_snag1c_patch(i)              = value_patch
+       this%bb_livestemc_storage_to_snag1c_patch(i)      = value_patch
+       this%bb_livestemc_xfer_to_snag1c_patch(i)         = value_patch
+       this%bb_deadstemc_to_snag1c_patch(i)              = value_patch
+       this%bb_deadstemc_storage_to_snag1c_patch(i)      = value_patch
+       this%bb_deadstemc_xfer_to_snag1c_patch(i)         = value_patch
+       this%bb_deadstemc_to_prod10c_patch(i)             = value_patch
+       this%bb_deadstemc_to_prod100c_patch(i)            = value_patch
+       this%bb_frootc_to_litter_patch(i)                 = value_patch
+       this%bb_frootc_storage_to_litter_patch(i)         = value_patch
+       this%bb_frootc_xfer_to_litter_patch(i)            = value_patch
+       this%bb_liverootc_to_litter_patch(i)              = value_patch
+       this%bb_liverootc_storage_to_litter_patch(i)      = value_patch
+       this%bb_liverootc_xfer_to_litter_patch(i)         = value_patch
+       this%bb_deadrootc_to_litter_patch(i)              = value_patch
+       this%bb_deadrootc_storage_to_litter_patch(i)      = value_patch
+       this%bb_deadrootc_xfer_to_litter_patch(i)         = value_patch
+       this%bb_gresp_storage_to_litter_patch(i)          = value_patch
+       this%bb_gresp_xfer_to_litter_patch(i)             = value_patch
+       this%snag1c_to_snag2c_patch(i)                    = value_patch
+       this%snag2c_to_snag3c_patch(i)                    = value_patch
+       this%snag3c_to_snag4c_patch(i)                    = value_patch
+       this%snag4c_to_snag5c_patch(i)                    = value_patch
+       this%snag5c_to_snag6c_patch(i)                    = value_patch
+       this%snag6c_to_litter_patch(i)                    = value_patch
+       this%leafsnag1c_to_leafsnag2c_patch(i)            = value_patch
+       this%leafsnag2c_to_leafsnag3c_patch(i)            = value_patch
+       this%leafsnag3c_to_litter_patch(i)                = value_patch
+       this%bb_xsmrpool_to_atm_patch(i)                  = value_patch
+       ! PBuotte: end bark beetle additions
+
        this%m_leafc_to_fire_patch(i)                     = value_patch
        this%m_leafc_storage_to_fire_patch(i)             = value_patch
        this%m_leafc_xfer_to_fire_patch(i)                = value_patch
@@ -3840,6 +3986,13 @@ contains
           this%harvest_c_to_litr_lig_c_col(i,j)       = value_column             
           this%harvest_c_to_cwdc_col(i,j)             = value_column          
 
+          ! PBuotte: begin bark beetle additions
+          this%beetle_c_to_litr_met_c_col(i,j)       = value_column
+          this%beetle_c_to_litr_cel_c_col(i,j)       = value_column
+          this%beetle_c_to_litr_lig_c_col(i,j)       = value_column
+          this%beetle_c_to_cwdc_col(i,j)             = value_column
+          ! PBuotte: end bark beetle additions
+
        end do
     end do
 
@@ -3881,6 +4034,8 @@ contains
        this%bgnpp_patch(i)         = value_patch
        this%litfall_patch(i)       = value_patch
        this%wood_harvestc_patch(i) = value_patch
+       ! PBuotte: added beetle mortality
+       this%wood_beetlec_patch(i)  = value_patch
        this%slash_harvestc_patch(i) = value_patch
        this%cinputs_patch(i)       = value_patch
        this%coutputs_patch(i)      = value_patch
@@ -3924,6 +4079,8 @@ contains
        this%fire_closs_col(i)          = value_column 
        this%wood_harvestc_col(i)       = value_column 
        this%hrv_xsmrpool_to_atm_col(i) = value_column
+       ! PBuotte: added beetle mortality
+       this%bb_xsmrpool_to_atm_col(i)  = value_column
 
        this%nep_col(i)                 = value_column
 
@@ -4008,6 +4165,7 @@ contains
     real(r8) :: nep_grc(bounds%begg:bounds%endg)        ! nep_col averaged to gridcell
     real(r8) :: fire_closs_grc(bounds%begg:bounds%endg) ! fire_closs_col averaged to gridcell
     real(r8) :: hrv_xsmrpool_to_atm_grc(bounds%begg:bounds%endg) ! hrv_xsmrpool_to_atm_col averaged to gridcell (gC/m2/s)
+    real(r8) :: bb_xsmrpool_to_atm_grc(bounds%begg:bounds%endg) ! grid-cell averaged bb_xsmrpool_to_atm_col (gC/m2/s) excess MR pool beetle mortality
     real(r8) :: hrv_xsmrpool_to_atm_delta_grc(bounds%begg:bounds%endg) ! hrv_xsmrpool_to_atm_col averaged to gridcell, expressed as a delta (not a flux) (gC/m2)
     real(r8) :: hrv_xsmrpool_to_atm_dribbled_grc(bounds%begg:bounds%endg) ! hrv_xsmrpool_to_atm, dribbled over the year (gC/m2/s)
     real(r8) :: dwt_conv_cflux_delta_grc(bounds%begg:bounds%endg)    ! dwt_conv_cflux_grc expressed as a total delta (not a flux) (gC/m2)
@@ -4243,7 +4401,23 @@ contains
             this%hrv_deadcrootc_storage_to_litter_patch(p)    + &
             this%hrv_deadcrootc_xfer_to_litter_patch(p)       + &
             this%hrv_gresp_storage_to_litter_patch(p)         + &
-            this%hrv_gresp_xfer_to_litter_patch(p)
+            this%hrv_gresp_xfer_to_litter_patch(p)            + &
+
+            ! PBuotte: begin bark beetle additions
+            this%bb_frootc_to_litter_patch(p)                 + &
+            this%bb_frootc_storage_to_litter_patch(p)         + &
+            this%bb_frootc_xfer_to_litter_patch(p)            + &
+            this%bb_liverootc_to_litter_patch(p)              + &
+            this%bb_liverootc_storage_to_litter_patch(p)      + &
+            this%bb_liverootc_xfer_to_litter_patch(p)         + &
+            this%bb_deadrootc_to_litter_patch(p)              + &
+            this%bb_deadrootc_storage_to_litter_patch(p)      + &
+            this%bb_deadrootc_xfer_to_litter_patch(p)         + &
+            this%leafsnag3c_to_litter_patch(p)                + &
+            this%snag6c_to_litter_patch(p)                    + &
+            this%bb_gresp_storage_to_litter_patch(p)          + &
+            this%bb_gresp_xfer_to_litter_patch(p)
+            ! PBuotte: end bark beetle additions
 
        if ( use_crop .and. patch%itype(p) >= npcropmin )then
           this%litfall_patch(p) =      &
@@ -4265,6 +4439,15 @@ contains
                this%leafc_to_litter_patch(p) + &
                this%frootc_to_litter_patch(p)
        end if
+
+       ! PBuotte
+       ! patch-level beetle-killed wood
+
+       this%wood_beetlec_patch(p) = &
+            this%bb_deadstemc_to_prod10c_patch(p) + &
+            this%bb_deadstemc_to_prod100c_patch(p) + &
+            this%bb_livestemc_to_snag1c_patch(p)   + &
+            this%bb_deadstemc_to_snag1c_patch(p)
 
        ! patch-level carbon losses to fire changed by F. Li and S. Levis
 
@@ -4316,7 +4499,9 @@ contains
             this%m_leafc_to_fire_patch(p)        + &
             this%m_leafc_to_litter_fire_patch(p) + &
             this%hrv_leafc_to_litter_patch(p)    + &
-            this%leafc_to_litter_patch(p)
+            this%leafc_to_litter_patch(p)        + &
+            ! PBuotte: added bark beetle mortality
+            this%bb_leafc_to_leafsnag1c_patch(p)
 
        ! (WOODC_ALLOC) - wood C allocation
        this%woodc_alloc_patch(p) = &
@@ -4350,7 +4535,16 @@ contains
             this%hrv_livecrootc_xfer_to_litter_patch(p)    + &
             this%hrv_deadcrootc_to_litter_patch(p)         + &
             this%hrv_deadcrootc_storage_to_litter_patch(p) + &
-            this%hrv_deadcrootc_xfer_to_litter_patch(p)   
+            this%hrv_deadcrootc_xfer_to_litter_patch(p)    + &
+            ! PBuotte: added bark beetle mortality losses
+            this%bb_livestemc_to_snag1c_patch(p)           + &
+            this%bb_deadstemc_to_snag1c_patch(p)           + &
+            this%bb_livestemc_storage_to_snag1c_patch(p)   + &
+            this%bb_deadstemc_storage_to_snag1c_patch(p)   + &
+            this%bb_livestemc_xfer_to_snag1c_patch(p)      + &
+            this%bb_deadstemc_xfer_to_snag1c_patch(p)      + &
+            this%bb_deadstemc_to_prod10c_patch(p)          + &
+            this%bb_deadstemc_to_prod100c_patch(p)
 
        ! (Slash Harvest Flux) - Additional Wood Harvest Veg C Losses
        this%slash_harvestc_patch(p) = &
@@ -4386,6 +4580,12 @@ contains
     call p2c(bounds, num_soilc, filter_soilc, &
          this%hrv_xsmrpool_to_atm_patch(bounds%begp:bounds%endp), &
          this%hrv_xsmrpool_to_atm_col(bounds%begc:bounds%endc))
+
+    ! PBuotte: begin bark beetle additions
+    call p2c(bounds, num_soilc, filter_soilc, &
+         this%bb_xsmrpool_to_atm_patch(bounds%begp:bounds%endp), &
+         this%bb_xsmrpool_to_atm_col(bounds%begc:bounds%endc))
+    ! PBuotte: end bark beetle additions
 
     call p2c(bounds, num_soilc, filter_soilc, &
          this%fire_closs_patch(bounds%begp:bounds%endp), &
@@ -4508,6 +4708,12 @@ contains
     call this%hrv_xsmrpool_to_atm_dribbler%get_curr_flux(bounds, &
          hrv_xsmrpool_to_atm_dribbled_grc(bounds%begg:bounds%endg))
 
+    call c2g( bounds = bounds, &
+         carr = this%bb_xsmrpool_to_atm_col(bounds%begc:bounds%endc), &
+         garr = bb_xsmrpool_to_atm_grc(bounds%begg:bounds%endg), &
+         c2l_scale_type = 'unity', &
+         l2g_scale_type = 'unity')
+
     dwt_conv_cflux_delta_grc(bounds%begg:bounds%endg) = &
          this%dwt_conv_cflux_grc(bounds%begg:bounds%endg) * dtime
     call this%dwt_conv_cflux_dribbler%set_curr_delta(bounds, &
@@ -4521,7 +4727,9 @@ contains
        this%nee_grc(g) = &
             -nep_grc(g)       + &
             fire_closs_grc(g) + &
-            hrv_xsmrpool_to_atm_dribbled_grc(g)
+            hrv_xsmrpool_to_atm_dribbled_grc(g) + &
+            ! PBuotte: added beetle mortality
+            bb_xsmrpool_to_atm_grc(g)
 
        this%landuseflux_grc(g) = &
             this%dwt_conv_cflux_dribbled_grc(g)   + &

@@ -239,6 +239,8 @@ contains
     ! Set ldecomp
 
     allocate(ldecomp%gdc2glo(numg), stat=ier)
+    allocate(ldecomp%ixy(numg), stat=ier)
+    allocate(ldecomp%jxy(numg), stat=ier)
     if (ier /= 0) then
        write(iulog,*) 'decompInit_lnd(): allocation error1 for ldecomp, etc'
        call endrun(msg=errMsg(sourcefile, __LINE__))
@@ -250,6 +252,8 @@ contains
     end if
 
     ldecomp%gdc2glo(:) = 0
+    ldecomp%ixy(:) = 0
+    ldecomp%jxy(:) = 0
     ag = 0
 
     ! clumpcnt is the start gdc index of each clump
@@ -275,6 +279,8 @@ contains
        if (cid > 0) then
           ag = clumpcnt(cid)
           ldecomp%gdc2glo(ag) = an
+          ldecomp%ixy(ag) = ai
+          ldecomp%jxy(ag) = aj
           clumpcnt(cid) = clumpcnt(cid) + 1
        end if
     end do

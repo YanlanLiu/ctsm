@@ -180,12 +180,13 @@ contains
                ! trees and shrubs
 
                ! if shrubs have a squat taper 
-               if (ivt(p) >= nbrdlf_evr_shrub .and. ivt(p) <= nbrdlf_dcd_brl_shrub) then
-                  taper = 10._r8
+!P.Buotte changed for FMEC runs with no shrubs
+              ! if (ivt(p) >= nbrdlf_evr_shrub .and. ivt(p) <= nbrdlf_dcd_brl_shrub) then
+               !   taper = 10._r8
                   ! otherwise have a tall taper
-               else
+              ! else
                   taper = 200._r8
-               end if
+              ! end if
 
                ! trees and shrubs for now have a very simple allometry, with hard-wired
                ! stem taper (height:radius) and hard-wired stocking density (#individuals/area)
@@ -280,7 +281,8 @@ contains
          ! adjust lai and sai for burying by snow. 
          ! snow burial fraction for short vegetation (e.g. grasses) as in
          ! Wang and Zeng, 2007.
-         if (ivt(p) > noveg .and. ivt(p) <= nbrdlf_dcd_brl_shrub ) then
+!P.Buotte changed for FMEC runs with no shrubs
+         if (ivt(p) > noveg .and. ivt(p) <= 15 ) then
             ol = min( max(snow_depth(c)-hbot(p), 0._r8), htop(p)-hbot(p))
             fb = 1._r8 - ol / max(1.e-06_r8, htop(p)-hbot(p))
          else

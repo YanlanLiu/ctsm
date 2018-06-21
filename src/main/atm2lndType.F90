@@ -133,6 +133,11 @@ module atm2lndType
      real(r8) , pointer :: fsd240_patch                 (:)   => null() ! patch 240hr average of direct beam radiation 
      real(r8) , pointer :: fsi24_patch                  (:)   => null() ! patch 24hr average of diffuse beam radiation 
      real(r8) , pointer :: fsi240_patch                 (:)   => null() ! patch 240hr average of diffuse beam radiation 
+     ! slevis: variables needed for prog_bb
+     real(r8) , pointer :: prec_water_year              (:)   => null() ! gridcell precipitation from Oct 1 to Sep 30 (mm)
+     real(r8) , pointer :: tbotav_son                   (:)   => null() ! gridcell September through November mean of TBOT (K)
+     real(r8) , pointer :: tbotav_amjj                  (:)   => null() ! gridcell April through July mean of TBOT (K)
+     ! slevis: end variables needed for prog_bb
      real(r8) , pointer :: prec365_col                  (:)   => null() ! col 365-day running mean of tot. precipitation (see comment in UpdateAccVars regarding why this is col-level despite other prec accumulators being patch-level)
      real(r8) , pointer :: prec60_patch                 (:)   => null() ! patch 60-day running mean of tot. precipitation (mm/s) 
      real(r8) , pointer :: prec10_patch                 (:)   => null() ! patch 10-day running mean of tot. precipitation (mm/s) 
@@ -563,6 +568,11 @@ contains
     allocate(this%prec60_patch                  (begp:endp))        ; this%prec60_patch                  (:)   = nan
     allocate(this%rh30_patch                    (begp:endp))        ; this%rh30_patch                    (:)   = nan 
     allocate(this%prec365_col                   (begc:endc))        ; this%prec365_col                   (:)   = nan
+    ! slevis: variables needed for prog_bb
+    allocate(this%prec_water_year               (begg:endg))        ; this%prec_water_year               (:)   = nan
+    allocate(this%tbotav_son                    (begg:endg))        ; this%tbotav_son                    (:)   = nan
+    allocate(this%tbotav_amjj                   (begg:endg))        ; this%tbotav_amjj                  (:)   = nan
+    ! slevis: end variables needed for prog_bb
     if (use_fates) then
        allocate(this%prec24_patch               (begp:endp))        ; this%prec24_patch                  (:)   = nan
        allocate(this%rh24_patch                 (begp:endp))        ; this%rh24_patch                    (:)   = nan
@@ -797,6 +807,18 @@ contains
             ptr_patch=this%forc_pbot240_downscaled_patch, default='inactive')
     endif
 
+    call hist_addfld1d (fname='PREC365B', units='mm H2O',  &
+         avgflag='I', long_name='Oct-Sep precipitation', &
+         ptr_gcell=this%prec_water_year)
+
+    call hist_addfld1d (fname='TBOTAV_SON', units='K',  &
+         avgflag='I', long_name='September through November mean air temperature', &
+         ptr_gcell=this%tbotav_son)
+
+    call hist_addfld1d (fname='TBOTAV_AMJJ', units='K',  &
+         avgflag='I', long_name='April through July mean air temperature', &
+         ptr_gcell=this%tbotav_amjj)
+
   end subroutine InitHistory
 
   !-----------------------------------------------------------------------
@@ -814,6 +836,9 @@ contains
     ! !ARGUMENTS:
     class(atm2lnd_type) :: this
     type(bounds_type), intent(in) :: bounds  
+
+    ! !LOCAL VARIABLES:
+    integer, parameter :: not_used = huge(1)
     !---------------------------------------------------------------------
 
     this%fsd24_patch(bounds%begp:bounds%endp) = spval
@@ -889,6 +914,25 @@ contains
          subgrid_type='pft', numlev=1, init_value=101325._r8)
 
     endif
+
+    ! slevis: variables needed for prog_bb
+    this%prec_water_year(bounds%begg:bounds%endg) = spval
+!   this%prec_jja_previous(bounds%begg:bounds%endg) = spval
+    call init_accum_field (name='PREC365B', units='MM H2O', &
+         desc='Oct-Sep precipitation', accum_type='runaccum', accum_period=not_used, &
+         subgrid_type='gridcell', numlev=1, init_value=250._r8)  ! initialized at half the PPTdrought_x2 value in subroutine dynProgBB
+
+    this%tbotav_son(bounds%begg:bounds%endg) = spval
+    call init_accum_field(name='T_SON', units='K', &
+         desc='September to November average of TBOT', accum_type='runaccum', accum_period=not_used, &
+         subgrid_type='gridcell', numlev=1, init_value=0._r8)
+
+    this%tbotav_amjj(bounds%begg:bounds%endg) = spval
+    call init_accum_field(name='T_AMJJ', units='K', &
+         desc='April to July average of TBOT', accum_type='runaccum', accum_period=not_used, &
+         subgrid_type='gridcell', numlev=1, init_value=0._r8)
+
+    ! slevis: end variables needed for prog_bb
 
   end subroutine InitAccBuffer
 
@@ -1002,8 +1046,9 @@ contains
   subroutine UpdateAccVars (this, bounds)
     !
     ! USES
-    use clm_time_manager, only : get_nstep
-    use accumulMod      , only : update_accum_field, extract_accum_field
+    use clm_time_manager, only : get_nstep, get_curr_date, get_step_size
+    use accumulMod      , only : update_accum_field, extract_accum_field, accumResetVal
+    use clm_varcon      , only : secspday
     !
     ! !ARGUMENTS:
     class(atm2lnd_type)                 :: this
@@ -1016,14 +1061,21 @@ contains
     integer :: ier                       ! error status
     integer :: begp, endp
     integer :: begc, endc
+    integer :: begg, endg
+    integer :: year                      ! year (0, ...) for nstep
+    integer :: month                     ! month (1, ..., 12) for nstep
+    integer :: day                       ! day of month (1, ..., 31) for nstep
+    integer :: secs                      ! seconds into current date for nstep
     real(r8), pointer :: rbufslp(:)      ! temporary single level - patch level
     real(r8), pointer :: rbufslc(:)      ! temporary single level - column level
     !---------------------------------------------------------------------
 
     begp = bounds%begp; endp = bounds%endp
     begc = bounds%begc; endc = bounds%endc
+    begg = bounds%begg; endg = bounds%endg
 
     nstep = get_nstep()
+    call get_curr_date (year, month, day, secs)
 
     ! Allocate needed dynamic memory for single level patch field
     allocate(rbufslp(begp:endp), stat=ier)
@@ -1161,6 +1213,75 @@ contains
     deallocate(rbufslp)
     deallocate(rbufslc)
 
+    ! slevis: variables needed for prog_bb. Surround with prog_bb if_block?
+
+    allocate(rbufslp(begg:endg), stat=ier)
+
+    ! Accumulate and extract PREC365B
+    do g = begg,endg
+       dtime = get_step_size()
+       if (month == 10 .and. day == 1 .and. secs == dtime) then
+          rbufslp(g) = accumResetVal  ! reset
+       else
+          rbufslp(g) = (this%forc_rain_not_downscaled_grc(g) + this%forc_snow_not_downscaled_grc(g)) * dtime  ! mm/s to mm
+       end if
+    end do
+    call update_accum_field  ('PREC365B', rbufslp, nstep)
+    call extract_accum_field ('PREC365B', this%prec_water_year, nstep)
+
+    ! Accumulate and extract T_SON -
+    ! T_SON is not available Sep 1st, when the prognostic beetle model uses it.
+    ! So saving previous year's T_SON for use on Sep 1st. Doing so on Jan 1st
+    ! so as to have a value (0) in year 1 with arbitrary initial conditions.
+    !
+    ! T_SON updates September through November and otherwise remains constant.
+    ! It has a 91-day averaging period hardwired in the division below.
+    ! Named T_SON instead of TBOTAV_SON because CLM accumulation codes do not
+    ! allow very long names.
+    !
+    ! Used runaccum instead of timeavg setting because the latter causes
+    ! problems when you want a time period with specific start and end dates.
+    !
+    ! Saved g-level instead of p-level variable because p-level variable as an
+    ! accumulation of t_ref2m_patch was returning bogus values for certain p.
+    do g = begg,endg
+       if (month == 8 .and. day == 31 .and. secs == secspday - dtime) then
+          rbufslp(g) = accumResetVal  ! reset T_SON
+       else if (month > 8 .and. month < 12) then
+          rbufslp(g) = this%forc_t_not_downscaled_grc(g) * dtime / (91._r8 * secspday)
+       else
+          rbufslp(g) = 0._r8  ! keeps T_SON unchanged at other times
+       end if
+    end do
+    call update_accum_field  ('T_SON', rbufslp, nstep)
+    call extract_accum_field ('T_SON', rbufslp, nstep)
+    if (month == 1 .and. day == 1 .and. secs == dtime) then
+       do g = begg,endg
+          this%tbotav_son(g) = rbufslp(g)  ! update Jan 1st for use by prognostic beetle model Sep 1st
+       end do
+    end if
+
+    ! Accumulate and extract T_AMJJ - Similar comments as T_SON
+    ! though this variable is always available on Sep 1st.
+    ! However, this and subsequent variables will appear underestimated in
+    ! history because they include in history their accumulation period values
+    ! unlike T_SON which always sends to history the Jan 1st value.
+    do g = begg,endg
+       if (month == 3 .and. day == 31 .and. secs == secspday - dtime) then
+          rbufslp(g) = accumResetVal  ! reset T_AMJJ
+       else if (month > 3 .and. month < 8) then
+          rbufslp(g) = this%forc_t_not_downscaled_grc(g) * dtime / (122._r8 * secspday)
+       else
+          rbufslp(g) = 0._r8  ! keeps T_AMJJ unchanged at other times
+       end if
+    end do
+    call update_accum_field  ('T_AMJJ', rbufslp, nstep)
+    call extract_accum_field ('T_AMJJ', this%tbotav_amjj, nstep)
+
+    ! slevis: end variables needed for prog_bb
+
+    deallocate(rbufslp)
+
   end subroutine UpdateAccVars
 
   !------------------------------------------------------------------------
@@ -1206,6 +1327,21 @@ contains
             dim1name='pft', long_name='10 day mean atmospheric pressure(Pa)', units='Pa', &
             interpinic_flag='interp', readvar=readvar, data=this%forc_pbot240_downscaled_patch )
     endif
+
+    ! slevis: variables needed for prog_bb
+    call restartvar(ncid=ncid, flag=flag, varname='PREC365B', xtype=ncd_double,  &
+         dim1name='gridcell', long_name='Oct-Sep precipitation', units='mm', &
+         interpinic_flag='interp', readvar=readvar, data=this%prec_water_year)
+
+    call restartvar(ncid=ncid, flag=flag, varname='TBOTAV_SON', xtype=ncd_double,  &
+         dim1name='gridcell', long_name='September through November mean air temperature', units='Kelvin', &
+         interpinic_flag='interp', readvar=readvar, data=this%tbotav_son)
+
+    call restartvar(ncid=ncid, flag=flag, varname='TBOTAV_AMJJ', xtype=ncd_double,  &
+         dim1name='gridcell', long_name='April through July mean air temperature', units='Kelvin', &
+         interpinic_flag='interp', readvar=readvar, data=this%tbotav_amjj)
+
+    ! slevis: end variables needed for prog_bb
 
   end subroutine Restart
 
@@ -1297,6 +1433,11 @@ contains
     end if
     deallocate(this%t_mo_patch)
     deallocate(this%t_mo_min_patch)
+
+    ! prognostic beetle module
+    deallocate(this%prec_water_year)
+    deallocate(this%tbotav_son)
+    deallocate(this%tbotav_amjj)
 
   end subroutine Clean
 

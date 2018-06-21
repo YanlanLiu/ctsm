@@ -200,6 +200,8 @@ CONTAINS
     use pftconMod      , only : nc3_nonarctic_grass, nc4_grass, nc3crop
     use pftconMod      , only : nc3irrig, npcropmin, npcropmax
     use clm_varcon     , only : spval
+!P.Buotte added for FMEC
+    use pftconMod      , only : doug_fir, lodgepole, ponderosa, pin_jun,spruce_fir, five_needle, aspen, decid_oak, hem_ced, west_df, mix_fir, CA_mix, redwood, larch
 
     !
     ! !ARGUMENTS:
@@ -326,6 +328,21 @@ CONTAINS
             !map CLM veg type into Wesely veg type  
             wesveg = wveg_unset 
             if (clmveg == noveg                               ) wesveg = 8 
+!P.Buotte added for FMEC
+            if (clmveg == doug_fir                            ) wesveg = 5
+            if (clmveg == lodgepole                           ) wesveg = 5
+            if (clmveg == ponderosa                           ) wesveg = 5
+            if (clmveg == pin_jun                             ) wesveg = 5
+            if (clmveg == spruce_fir                          ) wesveg = 5
+            if (clmveg == five_needle                         ) wesveg = 5
+            if (clmveg == aspen                               ) wesveg = 5
+            if (clmveg == decid_oak                           ) wesveg = 5
+            if (clmveg == hem_ced                             ) wesveg = 5
+            if (clmveg == west_df                             ) wesveg = 5
+            if (clmveg == larch                               ) wesveg = 5
+            if (clmveg == mix_fir                             ) wesveg = 5
+            if (clmveg == CA_mix                              ) wesveg = 5
+            if (clmveg == redwood                             ) wesveg = 5
             if (clmveg == ndllf_evr_tmp_tree                  ) wesveg = 5 
             if (clmveg == ndllf_evr_brl_tree                  ) wesveg = 5 
             if (clmveg == ndllf_dcd_brl_tree                  ) wesveg = 5 

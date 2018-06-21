@@ -74,6 +74,10 @@ module TemperatureType
      real(r8), pointer :: t_ref2m_max_inst_r_patch (:)   ! patch instantaneous daily max of average 2 m height surface air temp - rural (K)
      real(r8), pointer :: t_ref2m_max_inst_u_patch (:)   ! patch instantaneous daily max of average 2 m height surface air temp - urban (K)
 
+     real(r8), pointer :: tminav_dec               (:)  => null() ! gridcell December mean of daily minimum temperature (K)
+     real(r8), pointer :: tminav_jan               (:)  => null() ! gridcell January mean of daily minimum temperature (K)
+     real(r8), pointer :: tminav_feb               (:)  => null() ! gridcell February mean of daily minimum temperature (K)
+
      ! Accumulated quantities
      !
      ! TODO(wjs, 2014-08-05) Move these to the module(s) where they are used, to improve
@@ -239,6 +243,10 @@ contains
     allocate(this%t_ref2m_min_inst_patch   (begp:endp))                      ; this%t_ref2m_min_inst_patch   (:)   = nan
     allocate(this%t_ref2m_min_inst_r_patch (begp:endp))                      ; this%t_ref2m_min_inst_r_patch (:)   = nan
     allocate(this%t_ref2m_min_inst_u_patch (begp:endp))                      ; this%t_ref2m_min_inst_u_patch (:)   = nan
+
+    allocate(this%tminav_dec               (begp:endp))                      ; this%tminav_dec               (:)   = nan
+    allocate(this%tminav_jan               (begp:endp))                      ; this%tminav_jan               (:)   = nan
+    allocate(this%tminav_feb               (begp:endp))                      ; this%tminav_feb               (:)   = nan
 
     ! Accumulated fields
     allocate(this%t_veg24_patch            (begp:endp))                      ; this%t_veg24_patch            (:)   = nan
@@ -599,6 +607,20 @@ contains
             ptr_patch=this%t_veg10_night_patch, default='inactive')
     endif
 
+    this%tminav_dec(begp:endp) = spval
+    call hist_addfld1d (fname='T_DEC', units='K', &
+         avgflag='I', long_name='December average of daily min temperature', &
+         ptr_patch=this%tminav_dec)
+
+    this%tminav_jan(begp:endp) = spval
+    call hist_addfld1d (fname='T_JAN', units='K', &
+         avgflag='I', long_name='January average of daily min temperature', &
+         ptr_patch=this%tminav_jan)
+
+    this%tminav_feb(begp:endp) = spval
+    call hist_addfld1d (fname='T_FEB', units='K', &
+         avgflag='I', long_name='February average of daily min temperature', &
+         ptr_patch=this%tminav_feb)
 
   end subroutine InitHistory
 
@@ -982,6 +1004,18 @@ contains
             interpinic_flag='interp', readvar=readvar, data=this%gdd020_patch)
     end if
 
+    call restartvar(ncid=ncid, flag=flag, varname='TMINAV_DEC', xtype=ncd_double,  &
+         dim1name='pft', long_name='December mean of daily min temperature', units='Kelvin', &
+         interpinic_flag='interp', readvar=readvar, data=this%tminav_dec)
+
+    call restartvar(ncid=ncid, flag=flag, varname='TMINAV_JAN', xtype=ncd_double,  &
+         dim1name='pft', long_name='January mean of daily min temperature', units='Kelvin', &
+         interpinic_flag='interp', readvar=readvar, data=this%tminav_jan)
+
+    call restartvar(ncid=ncid, flag=flag, varname='TMINAV_FEB', xtype=ncd_double,  &
+         dim1name='pft', long_name='February mean of daily min temperature', units='Kelvin', &
+         interpinic_flag='interp', readvar=readvar, data=this%tminav_feb)
+
     if(use_luna)then
        call restartvar(ncid=ncid, flag=flag, varname='tvegd10', xtype=ncd_double,  &
             dim1name='pft', long_name='10-day mean daytime vegetation temperature', units='Kelvin', &
@@ -1166,6 +1200,21 @@ contains
             subgrid_type='pft', numlev=1, init_value=0._r8)
 
     end if
+
+    this%tminav_dec(bounds%begp:bounds%endp) = spval
+    call init_accum_field(name='T_DEC', units='K', &
+         desc='December average of daily min temperature', accum_type='runaccum', accum_period=not_used, &
+         subgrid_type='pft', numlev=1, init_value=0._r8)
+
+    this%tminav_jan(bounds%begp:bounds%endp) = spval
+    call init_accum_field(name='T_JAN', units='K', &
+         desc='January average of daily min temperature', accum_type='runaccum', accum_period=not_used, &
+         subgrid_type='pft', numlev=1, init_value=0._r8)
+
+    this%tminav_feb(bounds%begp:bounds%endp) = spval
+    call init_accum_field(name='T_FEB', units='K', &
+         desc='February average of daily min temperature', accum_type='runaccum', accum_period=not_used, &
+         subgrid_type='pft', numlev=1, init_value=0._r8)
 
   end subroutine InitAccBuffer
 
@@ -1480,6 +1529,52 @@ contains
        call extract_accum_field ('GDD10', this%gdd10_patch, nstep)
 
     end if
+
+    ! -------------------------------------
+
+    ! slevis: variables needed for prog_bb. Surround with prog_bb if_block?
+
+    ! Accumulate and extract T_DEC - Similar comments as T_SON
+    do p = begp,endp
+       if (month == 11 .and. day == 30) then
+          rbufslp(p) = accumResetVal  ! reset T_DEC
+       ! t_ref2m_min_patch = 1e36 except on the last timestep of every day
+       else if (month > 11 .and. this%t_ref2m_min_patch(p) < 350._r8) then
+          rbufslp(p) = this%t_ref2m_min_patch(p) / 31._r8
+       else
+          rbufslp(p) = 0._r8  ! keeps T_DEC unchanged at other times
+       end if
+    end do
+    call update_accum_field  ('T_DEC', rbufslp, nstep)
+    call extract_accum_field ('T_DEC', this%tminav_dec, nstep)
+
+    ! Accumulate and extract T_JAN - Similar comments as T_AMJJ
+    do p = begp,endp
+       if (month == 12 .and. day == 31) then
+          rbufslp(p) = accumResetVal  ! reset T_JAN
+       ! t_ref2m_min_patch = 1e36 except on the last timestep of every day
+       else if (month < 2 .and. this%t_ref2m_min_patch(p) < 350._r8) then
+          rbufslp(p) = this%t_ref2m_min_patch(p) / 31._r8
+       else
+          rbufslp(p) = 0._r8  ! keeps T_JAN unchanged at other times
+       end if
+    end do
+    call update_accum_field  ('T_JAN', rbufslp, nstep)
+    call extract_accum_field ('T_JAN', this%tminav_jan, nstep)
+
+    ! Accumulate and extract T_FEB - Similar comments as T_AMJJ
+    do p = begp,endp
+       if (month == 1 .and. day == 31) then
+          rbufslp(p) = accumResetVal  ! reset T_FEB
+       ! t_ref2m_min_patch = 1e36 except on the last timestep of every day
+       else if (month > 1 .and. month < 3 .and. this%t_ref2m_min_patch(p) < 350._r8) then
+          rbufslp(p) = this%t_ref2m_min_patch(p) / 28._r8
+       else
+          rbufslp(p) = 0._r8  ! keeps T_FEB unchanged at other times
+       end if
+    end do
+    call update_accum_field  ('T_FEB', rbufslp, nstep)
+    call extract_accum_field ('T_FEB', this%tminav_feb, nstep)
 
     deallocate(rbufslp)
 

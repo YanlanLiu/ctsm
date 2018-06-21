@@ -10,6 +10,9 @@ module dynSubgridControlMod
   ! this class is stored in this module. This is done for convenience, to avoid having to
   ! pass around the single instance just to query these control flags.
   !
+  !Polly Buotte added code to accept prescribed bark beetle mortality 11/15/2016
+  !These changes identified by !PBuotte:
+  !
   ! !USES:
 #include "shr_assert.h"
   use shr_log_mod        , only : errMsg => shr_log_errMsg
@@ -28,6 +31,10 @@ module dynSubgridControlMod
   public :: get_do_harvest          ! return the value of the do_harvest control flag
   public :: get_for_testing_allow_non_annual_changes ! return true if user has requested to allow area changes at times other than the year boundary, for testing purposes
   public :: get_for_testing_zero_dynbal_fluxes ! return true if user has requested to set the dynbal water and energy fluxes to zero, for testing purposes
+  !PBuotte: begin prescribed BB additions
+  public :: get_do_presc_bb             ! return the value of the do_presc_bb control flag
+  !PBuotte: end prescribed BB additions
+  public :: get_do_prog_bb              ! return the value of the do_prog_bb control flag
   !
   ! !PRIVATE MEMBER FUNCTIONS:
   private :: read_namelist              ! read namelist variables
@@ -40,6 +47,10 @@ module dynSubgridControlMod
      logical :: do_transient_pfts  = .false. ! whether to apply transient natural PFTs from dataset
      logical :: do_transient_crops = .false. ! whether to apply transient crops from dataset
      logical :: do_harvest         = .false. ! whether to apply harvest from dataset
+  !PBuotte: begin prescribed BB additions
+     logical :: do_presc_bb        = .false. ! whether to apply beetle mortality from dataset
+  !PBuotte: end prescribed BB additions
+     logical :: do_prog_bb         = .false. ! slevis: prognostic beetle model
 
      ! The following is only meant for testing: Whether area changes are allowed at times
      ! other than the year boundary. This should only arise in some test configurations
@@ -116,6 +127,10 @@ contains
     logical :: do_harvest
     logical :: for_testing_allow_non_annual_changes
     logical :: for_testing_zero_dynbal_fluxes
+    !PBuotte: begin prescribed BB additions
+    logical :: do_presc_bb
+    !PBuotte: end prescribed BB additions
+    logical :: do_prog_bb  ! slevis: prognostic beetle model
     ! other local variables:
     integer :: nu_nml    ! unit for namelist file
     integer :: nml_error ! namelist i/o error flag
@@ -123,11 +138,15 @@ contains
     character(len=*), parameter :: subname = 'read_namelist'
     !-----------------------------------------------------------------------
     
+    !PBuotte: added do_presc_bb to list
+    !slevis: added do_prog_bb to list
     namelist /dynamic_subgrid/ &
          flanduse_timeseries, &
          do_transient_pfts, &
          do_transient_crops, &
          do_harvest, &
+         do_presc_bb, &
+         do_prog_bb, &
          for_testing_allow_non_annual_changes, &
          for_testing_zero_dynbal_fluxes
 
@@ -138,6 +157,10 @@ contains
     do_harvest         = .false.
     for_testing_allow_non_annual_changes = .false.
     for_testing_zero_dynbal_fluxes = .false.
+    !PBuotte: begin prescribed BB additions
+    do_presc_bb        = .false.
+    !PBuotte: end prescribed BB additions
+    do_prog_bb         = .false.  ! slevis added for prognostic beetles
 
     if (masterproc) then
        nu_nml = getavu()
@@ -161,12 +184,17 @@ contains
     call shr_mpi_bcast (do_harvest, mpicom)
     call shr_mpi_bcast (for_testing_allow_non_annual_changes, mpicom)
     call shr_mpi_bcast (for_testing_zero_dynbal_fluxes, mpicom)
+    call shr_mpi_bcast (do_presc_bb, mpicom)  ! PBuotte added for presc beetles
+    call shr_mpi_bcast (do_prog_bb, mpicom)  ! slevis added for prog beetles
 
+    !PBuotte added do_presc_bb; slevis added do_prog_bb to next list
     dyn_subgrid_control_inst = dyn_subgrid_control_type( &
          flanduse_timeseries = flanduse_timeseries, &
          do_transient_pfts = do_transient_pfts, &
          do_transient_crops = do_transient_crops, &
          do_harvest = do_harvest, &
+         do_presc_bb = do_presc_bb, &
+         do_prog_bb = do_prog_bb, &
          for_testing_allow_non_annual_changes = for_testing_allow_non_annual_changes, &
          for_testing_zero_dynbal_fluxes = for_testing_zero_dynbal_fluxes)
 
@@ -211,6 +239,13 @@ contains
           write(iulog,*) 'a flanduse_timeseries file (currently flanduse_timeseries is blank)'
           call endrun(msg=errMsg(sourcefile, __LINE__))
        end if
+       !PBuotte: begin prescribed BB
+       if (dyn_subgrid_control_inst%do_presc_bb) then
+          write(iulog,*) 'ERROR: do_presc_bb can only be true if you are running with'
+          write(iulog,*) 'a flanduse_timeseries file (currently flanduse_timeseries is blank)'
+          call endrun(msg=errMsg(__FILE__, __LINE__))
+       end if
+       !PBuotte: end prescribed BB
     end if
 
     if (dyn_subgrid_control_inst%do_transient_pfts) then
@@ -248,6 +283,18 @@ contains
           call endrun(msg=errMsg(sourcefile, __LINE__))
        end if
     end if
+    !PBuotte: begin prescribed BB; slevis: added prognostic BB
+    if (dyn_subgrid_control_inst%do_presc_bb .or. dyn_subgrid_control_inst%do_prog_bb) then
+       if (.not. use_cn) then
+          write(iulog,*) 'ERROR: do_presc_bb and do_prog_bb can be true only if use_cn is true'
+          call endrun(msg=errMsg(__FILE__, __LINE__))
+       end if
+       if (use_fates) then
+          write(iulog,*) 'ERROR: do_presc_bb and do_prog_bb do not work with use_fates'
+          call endrun(msg=errMsg(__FILE__, __LINE__))
+       end if
+    end if
+   !PBuotte: end prescribed BB
 
   end subroutine check_namelist_consistency
 
@@ -344,5 +391,27 @@ contains
     get_for_testing_zero_dynbal_fluxes = dyn_subgrid_control_inst%for_testing_zero_dynbal_fluxes
 
   end function get_for_testing_zero_dynbal_fluxes
+
+  !PBuotte: begin prescribed BB-------------------------------------------------
+  logical function get_do_presc_bb()
+    ! !DESCRIPTION:
+    ! Return the value of the do_presc_bb control flag
+    !-----------------------------------------------------------------------
+
+    get_do_presc_bb = dyn_subgrid_control_inst%do_presc_bb
+
+  end function get_do_presc_bb
+  !PBuotte: end prescribed BB
+
+  !slevis: begin prognostic BB--------------------------------------------------
+  logical function get_do_prog_bb()
+    ! !DESCRIPTION:
+    ! Return the value of the do_prog_bb control flag
+    !-----------------------------------------------------------------------
+
+    get_do_prog_bb = dyn_subgrid_control_inst%do_prog_bb
+
+  end function get_do_prog_bb
+  !slevis: end prognostic BB
 
 end module dynSubgridControlMod

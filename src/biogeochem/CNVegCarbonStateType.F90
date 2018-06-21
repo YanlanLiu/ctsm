@@ -77,11 +77,23 @@ module CNVegCarbonStateType
      real(r8), pointer :: storvegc_patch           (:) ! (gC/m2) stored vegetation carbon, excluding cpool
      real(r8), pointer :: totvegc_patch            (:) ! (gC/m2) total vegetation carbon, excluding cpool
      real(r8), pointer :: totvegc_col              (:) ! (gC/m2) total vegetation carbon, excluding cpool averaged to column (p2c)
+     real(r8), pointer :: abovegroundc_patch       (:) ! (gC/m2) aboveground carbon
 
      ! Total C pools       
      real(r8), pointer :: totc_p2c_col             (:) ! (gC/m2) totc_patch averaged to col
      real(r8), pointer :: totc_col                 (:) ! (gC/m2) total column carbon, incl veg and cpool
      real(r8), pointer :: totecosysc_col           (:) ! (gC/m2) total ecosystem carbon, incl veg but excl cpool 
+
+     ! PBuotte: added snag pools to hold beetle-killed trees
+     real(r8), pointer :: snag1c_patch             (:) ! (gC/m2) first year standing dead wood pool
+     real(r8), pointer :: snag2c_patch             (:) ! (gC/m2) second year standing dead wood pool
+     real(r8), pointer :: snag3c_patch             (:) ! (gC/m2) third year standing dead wood pool
+     real(r8), pointer :: snag4c_patch             (:) ! (gC/m2) fourth year standing dead wood pool
+     real(r8), pointer :: snag5c_patch             (:) ! (gC/m2) fifth year standing dead wood pool
+     real(r8), pointer :: snag6c_patch             (:) ! (gC/m2) six, and last, year standing dead wood pool
+     real(r8), pointer :: leafsnag1c_patch         (:) ! (gC/m2) first year dead leaves held on trees pool
+     real(r8), pointer :: leafsnag2c_patch         (:) ! (gC/m2) second year dead leaves held on trees pool
+     real(r8), pointer :: leafsnag3c_patch         (:) ! (gC/m2) third, and last, year dead leaves held on trees pool
 
    contains
 
@@ -259,10 +271,23 @@ contains
 
     allocate(this%totvegc_patch            (begp:endp)) ; this%totvegc_patch            (:) = nan
     allocate(this%totvegc_col              (begc:endc)) ; this%totvegc_col              (:) = nan
+    allocate(this%abovegroundc_patch       (begp:endp)) ; this%abovegroundc_patch       (:) = nan
 
     allocate(this%totc_p2c_col             (begc:endc)) ; this%totc_p2c_col             (:) = nan
     allocate(this%totc_col                 (begc:endc)) ; this%totc_col                 (:) = nan
     allocate(this%totecosysc_col           (begc:endc)) ; this%totecosysc_col           (:) = nan
+
+    ! PBuotte: Begin bark beetle additions
+    allocate(this%snag1c_patch              (begp:endp)) ; this%snag1c_patch            (:) = nan
+    allocate(this%snag2c_patch              (begp:endp)) ; this%snag2c_patch            (:) = nan
+    allocate(this%snag3c_patch              (begp:endp)) ; this%snag3c_patch            (:) = nan
+    allocate(this%snag4c_patch              (begp:endp)) ; this%snag4c_patch            (:) = nan
+    allocate(this%snag5c_patch              (begp:endp)) ; this%snag5c_patch            (:) = nan
+    allocate(this%snag6c_patch              (begp:endp)) ; this%snag6c_patch            (:) = nan
+    allocate(this%leafsnag1c_patch          (begp:endp)) ; this%leafsnag1c_patch        (:) = nan
+    allocate(this%leafsnag2c_patch          (begp:endp)) ; this%leafsnag2c_patch        (:) = nan
+    allocate(this%leafsnag3c_patch          (begp:endp)) ; this%leafsnag3c_patch        (:) = nan
+    ! PBuotte: end bark beetle additions
 
   end subroutine InitAllocate
 
@@ -327,12 +352,12 @@ contains
        this%leafc_storage_patch(begp:endp) = spval
        call hist_addfld1d (fname='LEAFC_STORAGE', units='gC/m^2', &
             avgflag='A', long_name='leaf C storage', &
-            ptr_patch=this%leafc_storage_patch, default='inactive')    
+            ptr_patch=this%leafc_storage_patch, default='inactive')
 
        this%leafc_xfer_patch(begp:endp) = spval
        call hist_addfld1d (fname='LEAFC_XFER', units='gC/m^2', &
             avgflag='A', long_name='leaf C transfer', &
-            ptr_patch=this%leafc_xfer_patch, default='inactive')    
+            ptr_patch=this%leafc_xfer_patch, default='inactive')
 
        this%leafc_storage_xfer_acc_patch(begp:endp) = spval
        call hist_addfld1d (fname='LEAFC_STORAGE_XFER_ACC', units='gC/m^2', &
@@ -484,6 +509,54 @@ contains
             avgflag='A', long_name='total ecosystem carbon, incl veg but excl cpool and product pools', &
             ptr_col=this%totecosysc_col)
 
+       ! PBuotte: begin bark beetle additions
+
+       this%snag1c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG1C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in first year snag pool', &
+            ptr_patch=this%snag1c_patch)
+
+       this%snag2c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG2C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in second year snag pool', &
+            ptr_patch=this%snag2c_patch)
+
+       this%snag3c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG3C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in third year snag pool', &
+            ptr_patch=this%snag3c_patch)
+
+       this%snag4c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG4C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in fourth year snag pool', &
+            ptr_patch=this%snag4c_patch)
+
+       this%snag5c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG5C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in fifth year snag pool', &
+            ptr_patch=this%snag5c_patch)
+
+       this%snag6c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG6C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in sixth (final) year snag pool', &
+            ptr_patch=this%snag6c_patch)
+
+       this%leafsnag1c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='LEAFSNAG1C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in first year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag1c_patch)
+
+       this%leafsnag2c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='LEAFSNAG2C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in second year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag2c_patch)
+
+       this%leafsnag3c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='LEAFSNAG3C', units='gC/m^2', &
+            avgflag='A', long_name='carbon in third (final) year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag3c_patch)
+       ! PBuotte: end bark beetle additions
+
     end if
 
     !-------------------------------
@@ -632,6 +705,54 @@ contains
             avgflag='A', long_name='C13 total patch-level carbon, including cpool', &
             ptr_patch=this%totc_patch)
 
+       ! PBuotte: begin bark beetle additions
+
+       this%snag1c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_SNAG1C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in first year snag pool', &
+            ptr_patch=this%snag1c_patch)
+
+       this%snag2c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_SNAG2C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in second year snag pool', &
+            ptr_patch=this%snag2c_patch)
+
+       this%snag3c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_SNAG3C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in third year snag pool', &
+            ptr_patch=this%snag3c_patch)
+
+       this%snag4c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_SNAG4C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in fourth year snag pool', &
+            ptr_patch=this%snag4c_patch)
+
+       this%snag5c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_SNAG5C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in fifth year snag pool', &
+            ptr_patch=this%snag5c_patch)
+
+       this%snag6c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_SNAG6C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in sixth (final) year snag pool', &
+            ptr_patch=this%snag6c_patch)
+
+       this%leafsnag1c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_LEAFSNAG1C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in first year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag1c_patch)
+
+       this%leafsnag2c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_LEAFSNAG2C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in second year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag2c_patch)
+
+       this%leafsnag3c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C13_LEAFSNAG3C', units='gC/m^2', &
+            avgflag='A', long_name='c13 in third (final) year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag3c_patch)
+       ! PBuotte: end bark beetle additions
+
        this%seedc_grc(begg:endg) = spval
        call hist_addfld1d (fname='C13_SEEDC', units='gC13/m^2', &
             avgflag='A', long_name='C13 pool for seeding new PFTs via dynamic landcover', &
@@ -657,7 +778,6 @@ contains
                avgflag='A', long_name='C13 C used for crop seed that needs to be repaid', &
                ptr_patch=this%cropseedc_deficit_patch)
        end if
-
 
     endif
 
@@ -807,6 +927,54 @@ contains
             avgflag='A', long_name='C14 total patch-level carbon, including cpool', &
             ptr_patch=this%totc_patch)
 
+       ! PBuotte: begin bark beetle additions
+
+       this%snag1c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_SNAG1C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in first year snag pool', &
+            ptr_patch=this%snag1c_patch)
+
+       this%snag2c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_SNAG2C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in second year snag pool', &
+            ptr_patch=this%snag2c_patch)
+
+       this%snag3c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_SNAG3C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in third year snag pool', &
+            ptr_patch=this%snag3c_patch)
+
+       this%snag4c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_SNAG4C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in fourth year snag pool', &
+            ptr_patch=this%snag4c_patch)
+
+       this%snag5c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_SNAG5C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in fifth year snag pool', &
+            ptr_patch=this%snag5c_patch)
+
+       this%snag6c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_SNAG6C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in sixth (final) year snag pool', &
+            ptr_patch=this%snag6c_patch)
+
+       this%leafsnag1c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_LEAFSNAG1C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in first year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag1c_patch)
+
+       this%leafsnag2c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_LEAFSNAG2C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in second year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag2c_patch)
+
+       this%leafsnag3c_patch(begp:endp) = spval
+       call hist_addfld1d (fname='C14_LEAFSNAG3C', units='gC/m^2', &
+            avgflag='A', long_name='c14 in third (final) year dead leaves on trees pool', &
+            ptr_patch=this%leafsnag3c_patch)
+       ! PBuotte: end bark beetle additions
+
        this%seedc_grc(begg:endg) = spval
        call hist_addfld1d (fname='C14_SEEDC', units='gC14/m^2', &
             avgflag='A', long_name='C14 pool for seeding new PFTs via dynamic landcover', &
@@ -832,7 +1000,6 @@ contains
                avgflag='A', long_name='C14 C used for crop seed that needs to be repaid', &
                ptr_patch=this%cropseedc_deficit_patch)
        end if
-
 
     endif
 
@@ -968,6 +1135,18 @@ contains
           this%storvegc_patch(p)           = 0._r8 
           this%woodc_patch(p)              = 0._r8
           this%totc_patch(p)               = 0._r8 
+
+         ! PBuotte: begin bark beetle additions
+          this%snag1c_patch(p)             = 0._r8
+          this%snag2c_patch(p)             = 0._r8
+          this%snag3c_patch(p)             = 0._r8
+          this%snag4c_patch(p)             = 0._r8
+          this%snag5c_patch(p)             = 0._r8
+          this%snag6c_patch(p)             = 0._r8
+          this%leafsnag1c_patch(p)         = 0._r8
+          this%leafsnag2c_patch(p)         = 0._r8
+          this%leafsnag3c_patch(p)         = 0._r8
+          ! PBuotte: end bark beetle additions
 
           if ( use_crop )then
              this%grainc_patch(p)         = 0._r8 
@@ -1214,6 +1393,45 @@ contains
             long_name='', units='', &
             interpinic_flag='interp', readvar=readvar, data=this%leafcmax_patch)
 
+       ! PBuotte: begin bark beetle additions
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag1c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag1c_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag2c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag2c_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag3c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag3c_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag4c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag4c_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag5c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag5c_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag6c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag6c_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag1c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag1c_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag2c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag2c_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag3c', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag3c_patch)
+       ! PBuotte: end bark beetle additions
+
        if (flag == 'read') then
           call restartvar(ncid=ncid, flag=flag, varname='spinup_state', xtype=ncd_int, &
             long_name='Spinup state of the model that wrote this restart file: ' &
@@ -1334,8 +1552,6 @@ contains
              end do
           end if
        end if
-
-
        if (  flag == 'read' .and. (enter_spinup .or. (reseed_dead_plants .and. .not. is_restart())) .and. .not. use_cndv) then
              if ( masterproc ) write(iulog, *) 'Reseeding dead plants for CNVegCarbonState'
              ! If a pft is dead (indicated by totvegc = 0) then we reseed that
@@ -1416,6 +1632,18 @@ contains
                       this%woodc_patch(i)              = 0._r8
                       this%totc_patch(i)               = 0._r8 
 
+                      ! PBuotte: begin bark beetle additions
+                      this%snag1c_patch(p)             = 0._r8
+                      this%snag2c_patch(p)             = 0._r8
+                      this%snag3c_patch(p)             = 0._r8
+                      this%snag4c_patch(p)             = 0._r8
+                      this%snag5c_patch(p)             = 0._r8
+                      this%snag6c_patch(p)             = 0._r8
+                      this%leafsnag1c_patch(p)         = 0._r8
+                      this%leafsnag2c_patch(p)         = 0._r8
+                      this%leafsnag3c_patch(p)         = 0._r8
+                      ! PBuotte: end bark beetle additions
+
                       if ( use_crop )then
                          this%grainc_patch(i)         = 0._r8 
                          this%grainc_storage_patch(i) = 0._r8 
@@ -1425,6 +1653,7 @@ contains
 
                       ! calculate totvegc explicitly so that it is available for the isotope 
                       ! code on the first time step.
+                      ! PBuotte: added snag and leafsnag pools to totvegc
 
                       this%totvegc_patch(i) = &
                            this%leafc_patch(i)              + &
@@ -1439,6 +1668,15 @@ contains
                            this%deadstemc_patch(i)          + &
                            this%deadstemc_storage_patch(i)  + &
                            this%deadstemc_xfer_patch(i)     + &
+                           this%snag1c_patch(p)             + &
+                           this%snag2c_patch(p)             + &
+                           this%snag3c_patch(p)             + &
+                           this%snag4c_patch(p)             + &
+                           this%snag5c_patch(p)             + &
+                           this%snag6c_patch(p)             + &
+                           this%leafsnag1c_patch(p)         + &
+                           this%leafsnag2c_patch(p)         + &
+                           this%leafsnag3c_patch(p)         + &
                            this%livecrootc_patch(i)         + &
                            this%livecrootc_storage_patch(i) + &
                            this%livecrootc_xfer_patch(i)    + &
@@ -1457,6 +1695,20 @@ contains
                               this%grainc_xfer_patch(i)
                       end if
 
+                      ! calculate abovegroundc by subtracting all rootc from totvegc
+                      ! to make available for prognostic beetles
+                      this%abovegroundc_patch(p) = &
+                           this%totvegc_patch(p)            - &
+                           this%frootc_patch(p)             - &
+                           this%frootc_storage_patch(p)     - &
+                           this%frootc_xfer_patch(p)        - &
+                           this%livecrootc_patch(p)         - &
+                           this%livecrootc_storage_patch(p) - &
+                           this%livecrootc_xfer_patch(p)    - &
+                           this%deadcrootc_patch(p)         - &
+                           this%deadcrootc_storage_patch(p) - &
+                           this%deadcrootc_xfer_patch(p)
+
                    endif
                 end if
              end do
@@ -1471,6 +1723,7 @@ contains
                       this%dispvegc_patch(p)       = c12_cnveg_carbonstate_inst%dispvegc_patch(p)       * c3_r2
                       this%storvegc_patch(p)       = c12_cnveg_carbonstate_inst%storvegc_patch(p)       * c3_r2
                       this%totvegc_patch(p)        = c12_cnveg_carbonstate_inst%totvegc_patch(p)        * c3_r2
+                      this%abovegroundc_patch(p)   = c12_cnveg_carbonstate_inst%abovegroundc_patch(p)   * c3_r2
                       this%totc_patch(p)           = c12_cnveg_carbonstate_inst%totc_patch(p)           * c3_r2
                       this%woodc_patch(p)          = c12_cnveg_carbonstate_inst%woodc_patch(p)          * c3_r2
                    else
@@ -1480,6 +1733,7 @@ contains
                       this%dispvegc_patch(p)       = c12_cnveg_carbonstate_inst%dispvegc_patch(p)       * c4_r2
                       this%storvegc_patch(p)       = c12_cnveg_carbonstate_inst%storvegc_patch(p)       * c4_r2
                       this%totvegc_patch(p)        = c12_cnveg_carbonstate_inst%totvegc_patch(p)        * c4_r2
+                      this%abovegroundc_patch(p)   = c12_cnveg_carbonstate_inst%abovegroundc_patch(p)   * c4_r2
                       this%totc_patch(p)           = c12_cnveg_carbonstate_inst%totc_patch(p)           * c4_r2
                       this%woodc_patch(p)          = c12_cnveg_carbonstate_inst%woodc_patch(p)          * c4_r2
                    end if
@@ -1752,6 +2006,134 @@ contains
           end do
        end if
 
+      ! PBuotte: begin bark beetle additions
+       call restartvar(ncid=ncid, flag=flag, varname='snag1c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag1c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag1c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%snag1c_patch(i) = c12_cnveg_carbonstate_inst%snag1c_patch(i) * c3_r2
+             else
+                this%snag1c_patch(i) = c12_cnveg_carbonstate_inst%snag1c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag2c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag2c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag2c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%snag2c_patch(i) = c12_cnveg_carbonstate_inst%snag2c_patch(i) * c3_r2
+             else
+                this%snag2c_patch(i) = c12_cnveg_carbonstate_inst%snag2c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag3c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag3c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag3c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%snag3c_patch(i) = c12_cnveg_carbonstate_inst%snag3c_patch(i) * c3_r2
+             else
+                this%snag3c_patch(i) = c12_cnveg_carbonstate_inst%snag3c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag4c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag4c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag4c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%snag4c_patch(i) = c12_cnveg_carbonstate_inst%snag4c_patch(i) * c3_r2
+             else
+                this%snag4c_patch(i) = c12_cnveg_carbonstate_inst%snag4c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag5c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag5c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag5c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%snag5c_patch(i) = c12_cnveg_carbonstate_inst%snag5c_patch(i) * c3_r2
+             else
+                this%snag5c_patch(i) = c12_cnveg_carbonstate_inst%snag5c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag6c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag6c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag6c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%snag6c_patch(i) = c12_cnveg_carbonstate_inst%snag6c_patch(i) * c3_r2
+             else
+                this%snag6c_patch(i) = c12_cnveg_carbonstate_inst%snag6c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag1c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag1c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%leafsnag1c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%leafsnag1c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag1c_patch(i) * c3_r2
+             else
+                this%leafsnag1c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag1c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag2c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag2c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%leafsnag2c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%leafsnag2c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag2c_patch(i) * c3_r2
+             else
+                this%leafsnag2c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag2c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag3c_13', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag3c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%leafsnag3c with atmospheric c13 value'
+          do i = bounds%begp,bounds%endp
+             if (pftcon%c3psn(patch%itype(i)) == 1._r8) then
+                this%leafsnag3c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag3c_patch(i) * c3_r2
+             else
+                this%leafsnag3c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag3c_patch(i) * c4_r2
+             endif
+          end do
+       end if
+       ! PBuotte: end bark beetle additions
+
        call restartvar(ncid=ncid, flag=flag, varname='gresp_storage_13', xtype=ncd_double,  &
             dim1name='pft', long_name='', units='', &
             interpinic_flag='interp', readvar=readvar, data=this%gresp_storage_patch) 
@@ -1943,6 +2325,116 @@ contains
              endif
           end do
        end if
+
+      ! PBuotte: begin bark beetle additions
+       call restartvar(ncid=ncid, flag=flag, varname='snag1c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag1c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag1c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%snag1c_patch(i) /= spval .and. .not. isnan(this%snag1c_patch(i)) ) then
+                this%snag1c_patch(i) = c12_cnveg_carbonstate_inst%snag1c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag2c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag2c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag2c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%snag2c_patch(i) /= spval .and. .not. isnan(this%snag2c_patch(i)) ) then
+                this%snag2c_patch(i) = c12_cnveg_carbonstate_inst%snag2c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag3c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag3c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag3c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%snag3c_patch(i) /= spval .and. .not. isnan(this%snag3c_patch(i)) ) then
+                this%snag3c_patch(i) = c12_cnveg_carbonstate_inst%snag3c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag4c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag4c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag4c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%snag4c_patch(i) /= spval .and. .not. isnan(this%snag4c_patch(i)) ) then
+                this%snag4c_patch(i) = c12_cnveg_carbonstate_inst%snag4c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag5c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag5c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag5c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%snag5c_patch(i) /= spval .and. .not. isnan(this%snag5c_patch(i)) ) then
+                this%snag5c_patch(i) = c12_cnveg_carbonstate_inst%snag5c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag6c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag6c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%snag6c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%snag6c_patch(i) /= spval .and. .not. isnan(this%snag6c_patch(i)) ) then
+                this%snag6c_patch(i) = c12_cnveg_carbonstate_inst%snag6c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag1c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag1c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%leafsnag1c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%leafsnag1c_patch(i) /= spval .and. .not. isnan(this%leafsnag1c_patch(i)) ) then
+                this%leafsnag1c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag1c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag2c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag2c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%leafsnag2c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%leafsnag2c_patch(i) /= spval .and. .not. isnan(this%leafsnag2c_patch(i)) ) then
+                this%leafsnag2c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag2c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag3c_14', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag3c_patch)
+       if (flag=='read' .and. .not. readvar) then
+          write(iulog,*) 'initializing this%leafsnag3c_patch with atmospheric c14 value'
+          do i = bounds%begp,bounds%endp
+             if (this%leafsnag3c_patch(i) /= spval .and. .not. isnan(this%leafsnag3c_patch(i)) ) then
+                this%leafsnag3c_patch(i) = c12_cnveg_carbonstate_inst%leafsnag3c_patch(i) * c14ratio
+             endif
+          end do
+       end if
+       ! PBuotte: end bark beetlte additions
 
        call restartvar(ncid=ncid, flag=flag, varname='deadstemc_14', xtype=ncd_double,  &
             dim1name='pft', long_name='', units='', &
@@ -2324,7 +2816,19 @@ contains
        this%storvegc_patch(i)           = value_patch
        this%woodc_patch(i)              = value_patch
        this%totvegc_patch(i)            = value_patch
+       this%abovegroundc_patch(i)       = value_patch
        this%totc_patch(i)               = value_patch
+       ! PBuotte: begin bark beetle additions
+       this%snag1c_patch(i)             = value_patch
+       this%snag2c_patch(i)             = value_patch
+       this%snag3c_patch(i)             = value_patch
+       this%snag4c_patch(i)             = value_patch
+       this%snag5c_patch(i)             = value_patch
+       this%snag6c_patch(i)             = value_patch
+       this%leafsnag1c_patch(i)         = value_patch
+       this%leafsnag2c_patch(i)         = value_patch
+       this%leafsnag3c_patch(i)         = value_patch
+       ! PBuotte: end bark beetle additions
        if ( use_crop ) then
           this%grainc_patch(i)          = value_patch
           this%grainc_storage_patch(i)  = value_patch
@@ -2379,7 +2883,6 @@ contains
     ! !USES:
     use subgridAveMod, only : p2c
     use clm_time_manager , only : get_nstep
-
     !
     ! !DESCRIPTION:
     ! Perform patch and column-level carbon summary calculations
@@ -2414,13 +2917,23 @@ contains
        p = filter_soilp(fp)
 
        ! displayed vegetation carbon, excluding storage and cpool (DISPVEGC)
+       ! PBuotte: added snag pools holding standing dead beetle-killed carbon
        this%dispvegc_patch(p) =        &
             this%leafc_patch(p)      + &
             this%frootc_patch(p)     + &
             this%livestemc_patch(p)  + &
             this%deadstemc_patch(p)  + &
             this%livecrootc_patch(p) + &
-            this%deadcrootc_patch(p)
+            this%deadcrootc_patch(p) + &
+            this%snag1c_patch(p)     + &
+            this%snag2c_patch(p)     + &
+            this%snag3c_patch(p)     + &
+            this%snag4c_patch(p)     + &
+            this%snag5c_patch(p)     + &
+            this%snag6c_patch(p)     + &
+            this%leafsnag1c_patch(p) + &
+            this%leafsnag2c_patch(p) + &
+            this%leafsnag3c_patch(p)
 
        ! stored vegetation carbon, excluding cpool (STORVEGC)
        this%storvegc_patch(p) =                &
@@ -2462,16 +2975,36 @@ contains
             this%xsmrpool_patch(p) + &
             this%ctrunc_patch(p)
 
-       if (use_crop) then 
+       if (use_crop) then
           this%totc_patch(p) = this%totc_patch(p) + this%cropseedc_deficit_patch(p)
        end if
 
        ! (WOODC) - wood C
+       ! PBuotte: added carbon in snag pools
        this%woodc_patch(p) = &
             this%deadstemc_patch(p)    + &
             this%livestemc_patch(p)    + &
             this%deadcrootc_patch(p)   + &
-            this%livecrootc_patch(p)
+            this%livecrootc_patch(p)   + &
+            this%snag1c_patch(p)     + &
+            this%snag2c_patch(p)     + &
+            this%snag3c_patch(p)     + &
+            this%snag4c_patch(p)     + &
+            this%snag5c_patch(p)     + &
+            this%snag6c_patch(p)
+
+       ! calculate abovegroundc to make available for prognostic beetles
+       this%abovegroundc_patch(p) = &
+            this%totvegc_patch(p)            - &
+            this%frootc_patch(p)             - &
+            this%frootc_storage_patch(p)     - &
+            this%frootc_xfer_patch(p)        - &
+            this%livecrootc_patch(p)         - &
+            this%livecrootc_storage_patch(p) - &
+            this%livecrootc_xfer_patch(p)    - &
+            this%deadcrootc_patch(p)         - &
+            this%deadcrootc_storage_patch(p) - &
+            this%deadcrootc_xfer_patch(p)
 
     end do
 

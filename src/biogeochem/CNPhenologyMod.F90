@@ -35,6 +35,9 @@ module CNPhenologyMod
   use PatchType                       , only : patch   
   use atm2lndType                     , only : atm2lnd_type             
   use atm2lndType                     , only : atm2lnd_type
+!P.Buotte added for FMEC leaf shed routine
+  use SoilStateType                   , only : soilstate_type
+
   !
   implicit none
   private
@@ -58,6 +61,9 @@ module CNPhenologyMod
      real(r8) :: crit_offset_swi ! critical number of water stress days to initiate offset
      real(r8) :: soilpsi_off     ! critical soil water potential for leaf offset
      real(r8) :: lwtop   	 ! live wood turnover proportion (annual fraction)
+!P.Buotte added for FMEC leaf shed routine
+     real(r8) :: crit_shed_swi   ! critical number of water stress days for leaf shed
+     real(r8) :: soilpsi_shed    ! critical soil water potential for leaf shed (p50 values)
   end type params_type
 
   type(params_type) :: params_inst
@@ -75,6 +81,9 @@ module CNPhenologyMod
   real(r8) :: crit_offset_swi               ! water stress days for offset trigger
   real(r8) :: soilpsi_off                   ! water potential for offset trigger (MPa)
   real(r8) :: lwtop                         ! live wood turnover proportion (annual fraction)
+!P.Buotte added for FMEC leaf shed routine
+     real(r8) :: crit_shed_swi   ! critical number of water stress days for leaf shed
+     real(r8) :: soilpsi_shed    ! critical soil water potential for leaf shed (p50 values)
 
   ! CropPhenology variables and constants
   real(r8) :: p1d, p1v                      ! photoperiod factor constants for crop vernalization
@@ -235,6 +244,17 @@ contains
     if ( .not. readv ) call endrun( msg=trim(errCode)//trim(tString)//errMsg(sourcefile, __LINE__))
     params_inst%lwtop=tempr   
 
+!P.Buotte added for FMEC leaf shed routine
+    tString='crit_shed_swi'
+    call ncd_io(varname=trim(tString),data=tempr, flag='read', ncid=ncid,readvar=readv)
+    if ( .not. readv ) call endrun(msg=trim(errCode)//trim(tString)//errMsg(__FILE__, __LINE__))
+    params_inst%crit_shed_swi=tempr
+
+    tString='soilpsi_shed'
+    call ncd_io(varname=trim(tString),data=tempr, flag='read', ncid=ncid,readvar=readv)
+    if ( .not. readv ) call endrun(msg=trim(errCode)//trim(tString)//errMsg(__FILE__, __LINE__))
+    params_inst%soilpsi_shed=tempr
+
   end subroutine readParams
 
   !-----------------------------------------------------------------------
@@ -293,7 +313,7 @@ contains
             temperature_inst, cnveg_state_inst, crop_inst)
    
        call CNEvergreenPhenology(num_soilp, filter_soilp, &
-            cnveg_state_inst, cnveg_carbonstate_inst, cnveg_nitrogenstate_inst, cnveg_carbonflux_inst, cnveg_nitrogenflux_inst)
+            cnveg_state_inst, cnveg_carbonstate_inst, cnveg_nitrogenstate_inst, cnveg_carbonflux_inst, cnveg_nitrogenflux_inst, soilstate_inst)
 
        call CNSeasonDecidPhenology(num_soilp, filter_soilp, &
             temperature_inst, cnveg_state_inst, dgvs_inst, &
@@ -400,6 +420,13 @@ contains
     ! define as an annual fraction (0.7), and convert to fraction per second
     lwtop=params_inst%lwtop/31536000.0_r8 !annual fraction converted to per second
 
+!P.Buotte added for FMEC leaf shed routine
+    !------------------------------------------
+    ! Constants for leaf shed due to water stress, in CNEvergreenPhenology
+    !-----------------------------------------
+    crit_shed_swi=params_inst%crit_shed_swi
+    soilpsi_shed=params_inst%soilpsi_shed
+
     ! -----------------------------------------
     ! Call any subroutine specific initialization routines
     ! -----------------------------------------
@@ -500,7 +527,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine CNEvergreenPhenology (num_soilp, filter_soilp , &
-       cnveg_state_inst, cnveg_carbonstate_inst, cnveg_nitrogenstate_inst, cnveg_carbonflux_inst, cnveg_nitrogenflux_inst)   
+       cnveg_state_inst, cnveg_carbonstate_inst, cnveg_nitrogenstate_inst, cnveg_carbonflux_inst, cnveg_nitrogenflux_inst, soilstate_inst)   
        ! cnveg_state_inst) 
     !
     ! !DESCRIPTION:
@@ -510,6 +537,8 @@ contains
     use clm_varcon       , only : secspday
     use clm_time_manager , only : get_days_per_year
     use clm_varctl       , only : CN_evergreen_phenology_opt   
+!P.Buotte added for FMEC leaf shed routine
+    use clm_time_manager , only : get_curr_date
     !
     ! !ARGUMENTS:
     integer           , intent(in)    :: num_soilp       ! number of soil patches in filter
@@ -520,13 +549,23 @@ contains
     type(cnveg_carbonflux_type)    , intent(inout) :: cnveg_carbonflux_inst     
     type(cnveg_nitrogenflux_type)  , intent(inout) :: cnveg_nitrogenflux_inst   
     !
+!P.Buotte added for FMEC leaf shed routine
+    type(soilstate_type)           , intent(in)    :: soilstate_inst
+
     ! !LOCAL VARIABLES:
     real(r8):: dayspyr                    ! Days per year
-    integer :: p                          ! indices
+    integer :: c,p                        ! indices
     integer :: fp                         ! lake filter patch index
     
     real(r8):: tranr 				      
     real(r8):: t1                         ! temporary variable 
+!P.Buotte added for MFEC leaf shed routine
+    real(r8):: psi             ! water stress of top soil layer
+    integer :: yr              ! year
+    integer :: mon             ! month
+    integer :: day             ! day
+    integer :: tod             ! seconds
+    integer :: offset          ! offset
     !-----------------------------------------------------------------------
 
     associate(                                        & 
@@ -593,18 +632,68 @@ contains
    		           
          bglfr      => cnveg_state_inst%bglfr_patch , & ! Output: [real(r8) (:) ]  background litterfall rate (1/s)                  
          bgtr       => cnveg_state_inst%bgtr_patch  , & ! Output: [real(r8) (:) ]  background transfer growth rate (1/s)             
-         lgsf       => cnveg_state_inst%lgsf_patch    & ! Output: [real(r8) (:) ]  long growing season factor [0-1]                  
+         lgsf       => cnveg_state_inst%lgsf_patch  , & ! Output: [real(r8) (:) ]  long growing season factor [0-1]                  
+         soilpsi    => soilstate_inst%soilpsi_col  , & ! Input:  [real(r8)(:,:) ]  soil water potential in each soil layer (MPa)
+         shed_swi   => cnveg_state_inst%shed_swi_patch , & !InOut: [real(r8)(:)]
+         shed_flag  => cnveg_state_inst%shed_flag_patch &  !InOut: [real(r8)(:)]
          )
 
       dayspyr   = get_days_per_year()
 
       do fp = 1,num_soilp
          p = filter_soilp(fp)
+!PBuotte: added column index to get soil psi
+         c = patch%column(p)
          if (evergreen(ivt(p)) == 1._r8) then
             bglfr(p) = 1._r8/(leaf_long(ivt(p)) * dayspyr * secspday)
             bgtr(p)  = 0._r8
             lgsf(p)  = 0._r8
-         end if
+!PBuotte: added checks f r whether soil water stress should trigger additional leaf shed
+               ! if soil water potential lower than critical value, accumulate
+               ! time in leaf shed soil water index
+
+            call get_curr_date(yr, mon, day, tod, offset)
+            !reset accumulated days with soil water stress to 0 each year on Jan
+            !1
+             if (mon == 3 .AND. day == 31) then
+             shed_swi(p) = 0._r8
+             end if
+            !check if it is during the growing season.  If not, skip water
+            !stress accumulation.
+             if (mon >= 4 .AND. mon <= 9) then
+            psi = soilpsi(c,3)
+               if (psi <= soilpsi_shed) then
+                  shed_swi(p) = shed_swi(p) + fracday
+                  ! if the leaf shed soil water index exceeds critical value
+                  ! then set flag to start leaf shed
+                  if (shed_swi(p) >= crit_shed_swi) then
+                    shed_flag(p) = 1._r8
+                  end if !water stress counter check
+
+                  ! if soil water potential is higher than critical value,
+                  ! reduce the
+                  ! leaf shed water stress accumulation index.  By this
+                  ! mechanism, there must be a
+                  ! sustained period of water stress to initiate leaf shed. I
+                  ! think this allows for accumulation of stress during
+                  ! thedaytime to count even if there is sufficient soil water
+                  ! at night. Prolonged daytime stress will eventuall trigger
+                  ! leaf shed. We could vary the critical time value by PFT.
+
+               else
+                  shed_swi(p) = shed_swi(p) - fracday
+                  shed_swi(p) = max(shed_swi(p),0._r8)
+               end if !psi<crit soil water check
+
+            ! set litterfall rate according to shed flag
+           if (shed_flag(p) == 0._r8) then
+               bglfr(p) = bglfr(p)
+            else
+               !increase litterfall rate by 10%
+               bglfr(p) = bglfr(p) + (0.1 * bglfr(p))
+            end if !shed_flag check
+          end if ! growing season check for additional leaf shed
+         end if !evergreen type check
       end do
                
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

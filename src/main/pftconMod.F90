@@ -98,6 +98,21 @@ module pftconMod
   integer :: npcropmax              ! value for last prognostic crop in list
   integer :: nc3crop                ! value for generic crop (rf)
   integer :: nc3irrig               ! value for irrigated generic crop (ir)
+!P.Buotte added for FMEC tree PFTs
+  integer :: doug_fir               ! value for Doug Fir 
+  integer :: lodgepole              ! value for Lodgepole Pine
+  integer :: ponderosa              ! value for Ponderosa
+  integer :: pin_jun                ! value for Pinyon-Juniper
+  integer :: spruce_fir             ! value for Spruce-Fir
+  integer :: five_needle            ! value for 5-needle pines
+  integer :: aspen                  ! value for Aspen
+  integer :: decid_oak              ! value for Deciduous Oak
+  integer :: hem_ced                ! value for Mountain Hemlock/Cedar
+  integer :: west_df                ! value for Western Doug Fir
+  integer :: mix_fir                ! value for mixed fir
+  integer :: CA_mix                 ! value for CA miced conifer
+  integer :: redwood                ! value for redwood
+  integer :: larch                  ! value for Larch
 
   ! Number of crop functional types actually used in the model. This includes each CFT for
   ! which is_pft_known_to_model is true. Note that this includes irrigated crops even if
@@ -501,20 +516,21 @@ contains
     ! DO NOT CHANGE THE ORDER -- WITHOUT MODIFYING OTHER PARTS OF THE CODE WHERE THE ORDER MATTERS!
 
     expected_pftnames( 0) = 'not_vegetated                      '
-    expected_pftnames( 1) = 'needleleaf_evergreen_temperate_tree'
-    expected_pftnames( 2) = 'needleleaf_evergreen_boreal_tree   '
-    expected_pftnames( 3) = 'needleleaf_deciduous_boreal_tree   '
-    expected_pftnames( 4) = 'broadleaf_evergreen_tropical_tree  '
-    expected_pftnames( 5) = 'broadleaf_evergreen_temperate_tree '
-    expected_pftnames( 6) = 'broadleaf_deciduous_tropical_tree  '
-    expected_pftnames( 7) = 'broadleaf_deciduous_temperate_tree '
-    expected_pftnames( 8) = 'broadleaf_deciduous_boreal_tree    '
-    expected_pftnames( 9) = 'broadleaf_evergreen_shrub          '
-    expected_pftnames(10) = 'broadleaf_deciduous_temperate_shrub'
-    expected_pftnames(11) = 'broadleaf_deciduous_boreal_shrub   '
-    expected_pftnames(12) = 'c3_arctic_grass                    '
-    expected_pftnames(13) = 'c3_non-arctic_grass                '
-    expected_pftnames(14) = 'c4_grass                           '
+!P.Buotte changed for FMEC
+    expected_pftnames( 1) = 'Doug_Fir                           '
+    expected_pftnames( 2) = 'Lodgepole                          '
+    expected_pftnames( 3) = 'Ponderosa                          '
+    expected_pftnames( 4) = 'P-J                                '
+    expected_pftnames( 5) = 'Spruce-Fir                         '
+    expected_pftnames( 6) = '5-needle Pine                      '
+    expected_pftnames( 7) = 'Aspen                              '
+    expected_pftnames( 8) = 'Decid_Oak                          '
+    expected_pftnames( 9) = 'Hemlock_Cedar                      '
+    expected_pftnames(10) = 'West_DF                            '
+    expected_pftnames(11) = 'Mixed_Fir                          '
+    expected_pftnames(12) = 'CA_Mixed_Conifer                   '
+    expected_pftnames(13) = 'Redwood                            '
+    expected_pftnames(14) = 'Larch                              '
     expected_pftnames(15) = 'c3_crop                            '
     expected_pftnames(16) = 'c3_irrigated                       '
     expected_pftnames(17) = 'temperate_corn                     '
@@ -1017,6 +1033,21 @@ contains
        end if
 
        if ( trim(pftname(i)) == 'not_vegetated'                       ) noveg                = i
+!P.Buotte added for FMEC
+       if ( trim(pftname(i)) == 'Doug_Fir'                            ) doug_fir             = i
+       if ( trim(pftname(i)) == 'Lodgepole'                           ) lodgepole            = i
+       if ( trim(pftname(i)) == 'Ponderosa'                           ) ponderosa            = i
+       if ( trim(pftname(i)) == 'P-J      '                           ) pin_jun              = i
+       if ( trim(pftname(i)) == 'Spruce-Fir'                          ) spruce_fir           = i
+       if ( trim(pftname(i)) == '5-needle Pine'                       ) five_needle          = i
+       if ( trim(pftname(i)) == 'Aspen'                               ) aspen                = i
+       if ( trim(pftname(i)) == 'Decid Oak'                           ) decid_oak            = i
+       if ( trim(pftname(i)) == 'Hemlock/Cedar'                       ) hem_ced              = i
+       if ( trim(pftname(i)) == 'West_DF    '                         ) west_df              = i
+       if ( trim(pftname(i)) == 'Mixed Fir'                           ) mix_fir              = i
+       if ( trim(pftname(i)) == 'CA Mixed Conifer'                    ) CA_mix               = i
+       if ( trim(pftname(i)) == 'Redwood'                             ) redwood              = i
+       if ( trim(pftname(i)) == 'Larch'                               ) larch                = i
        if ( trim(pftname(i)) == 'needleleaf_evergreen_temperate_tree' ) ndllf_evr_tmp_tree   = i
        if ( trim(pftname(i)) == 'needleleaf_evergreen_boreal_tree'    ) ndllf_evr_brl_tree   = i
        if ( trim(pftname(i)) == 'needleleaf_deciduous_boreal_tree'    ) ndllf_dcd_brl_tree   = i
@@ -1097,9 +1128,21 @@ contains
        if ( trim(pftname(i)) == 'irrigated_tropical_soybean'          ) nirrig_trp_soybean   = i
     end do
 
-    ntree                = nbrdlf_dcd_brl_tree  ! value for last type of tree
+    ntree                = larch                ! P.Buotte changed value for last type of tree for FMEC
     npcropmin            = ntmp_corn            ! first prognostic crop
     npcropmax            = mxpft                ! last prognostic crop in list
+!P.Buotte added for FMEC
+    ndllf_evr_tmp_tree   = 0
+    ndllf_evr_brl_tree   = 0
+    ndllf_dcd_brl_tree   = 0
+    nbrdlf_evr_trp_tree  = 0
+    nbrdlf_evr_tmp_tree  = 0
+    nbrdlf_dcd_trp_tree  = 0
+    nbrdlf_dcd_tmp_tree  = 0
+    nbrdlf_dcd_brl_tree  = 0
+    nbrdlf_evr_shrub     = 0
+    nbrdlf_dcd_tmp_shrub = 0
+    nbrdlf_dcd_brl_shrub = 0
 
     call this%set_is_pft_known_to_model()
     call this%set_num_cfts_known_to_model()

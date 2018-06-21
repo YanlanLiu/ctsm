@@ -1337,7 +1337,7 @@ contains
          else if (vcmax_opt == 3) then                                                                   
             vcmax25top = ( i_vcad(patch%itype(p)) + s_vcad(patch%itype(p)) * lnc(p) ) * dayl_factor(p)  
          else if (vcmax_opt == 4) then                                                                   
-            nptreemax = 9  ! is this number correct? check later 
+            nptreemax = 15  ! is this number correct? check later; P.Buotte chged for FMEC 
             if (patch%itype(p) >= nptreemax) then   ! if not tree 
                ! for shrubs and herbs 
                vcmax25top = lnc(p) * ( i_flnr(patch%itype(p)) + s_flnr(patch%itype(p)) * lnc(p) ) * fnr * act25 * &

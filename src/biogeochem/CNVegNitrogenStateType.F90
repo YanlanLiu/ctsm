@@ -73,6 +73,17 @@ module CNVegNitrogenStateType
      real(r8), pointer :: totn_col                 (:) ! (gN/m2) total column nitrogen, incl veg
      real(r8), pointer :: totecosysn_col           (:) ! (gN/m2) total ecosystem nitrogen, incl veg  
 
+     ! PBuotte: added snag pools to hold beetle-killed trees
+     real(r8), pointer :: snag1n_patch             (:) ! (gN/m2) first year standing dead wood pool
+     real(r8), pointer :: snag2n_patch             (:) ! (gN/m2) second year standing dead wood pool
+     real(r8), pointer :: snag3n_patch             (:) ! (gN/m2) third year standing dead wood pool
+     real(r8), pointer :: snag4n_patch             (:) ! (gN/m2) fourth year standing dead wood pool
+     real(r8), pointer :: snag5n_patch             (:) ! (gN/m2) fifth year standing dead wood pool
+     real(r8), pointer :: snag6n_patch             (:) ! (gN/m2) six, and last, year standing dead wood pool
+     real(r8), pointer :: leafsnag1n_patch         (:) ! (gN/m2) first year dead leaves held on trees pool
+     real(r8), pointer :: leafsnag2n_patch         (:) ! (gN/m2) second year dead leaves held on trees pool
+     real(r8), pointer :: leafsnag3n_patch         (:) ! (gN/m2) third, and last, year dead leaves held on trees pool
+
    contains
 
      procedure , public  :: Init   
@@ -167,6 +178,18 @@ contains
     allocate(this%totn_p2c_col             (begc:endc)) ; this%totn_p2c_col             (:) = nan
     allocate(this%totn_col                 (begc:endc)) ; this%totn_col                 (:) = nan
     allocate(this%totecosysn_col           (begc:endc)) ; this%totecosysn_col           (:) = nan
+
+    ! PBuotte: Begin bark beetle additions
+    allocate(this%snag1n_patch              (begp:endp)) ; this%snag1n_patch            (:) = nan
+    allocate(this%snag2n_patch              (begp:endp)) ; this%snag2n_patch            (:) = nan
+    allocate(this%snag3n_patch              (begp:endp)) ; this%snag3n_patch            (:) = nan
+    allocate(this%snag4n_patch              (begp:endp)) ; this%snag4n_patch            (:) = nan
+    allocate(this%snag5n_patch              (begp:endp)) ; this%snag5n_patch            (:) = nan
+    allocate(this%snag6n_patch              (begp:endp)) ; this%snag6n_patch            (:) = nan
+    allocate(this%leafsnag1n_patch          (begp:endp)) ; this%leafsnag1n_patch        (:) = nan
+    allocate(this%leafsnag2n_patch          (begp:endp)) ; this%leafsnag2n_patch        (:) = nan
+    allocate(this%leafsnag3n_patch          (begp:endp)) ; this%leafsnag3n_patch        (:) = nan
+    ! PBuotte: end bark beetle additions
 
   end subroutine InitAllocate
 
@@ -348,6 +371,39 @@ contains
          avgflag='A', long_name='total patch-level nitrogen', &
          ptr_patch=this%totn_patch)
 
+       ! PBuotte: begin bark beetle additions
+
+       this%snag1n_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG1N', units='gN/m^2', &
+            avgflag='A', long_name='nitrogen in first year snag pool', &
+            ptr_patch=this%snag1n_patch)
+
+       this%snag2n_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG2N', units='gN/m^2', &
+            avgflag='A', long_name='nitrogen in second year snag pool', &
+            ptr_patch=this%snag2n_patch)
+
+       this%snag3n_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG3N', units='gN/m^2', &
+            avgflag='A', long_name='nitrogen in third year snag pool', &
+            ptr_patch=this%snag3n_patch)
+
+       this%snag4n_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG4N', units='gN/m^2', &
+            avgflag='A', long_name='nitrogen in fourth year snag pool', &
+            ptr_patch=this%snag4n_patch)
+
+       this%snag5n_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG5N', units='gN/m^2', &
+            avgflag='A', long_name='nitrogen in fifth year snag pool', &
+            ptr_patch=this%snag5n_patch)
+
+       this%snag6n_patch(begp:endp) = spval
+       call hist_addfld1d (fname='SNAG6N', units='gN/m^2', &
+            avgflag='A', long_name='nitrogen in sixth (final) year snag pool', &
+            ptr_patch=this%snag6n_patch)
+      ! PBuotte: end bark beetle additions
+
     !-------------------------------
     ! column state variables 
     !-------------------------------
@@ -451,6 +507,18 @@ contains
 
           this%leafn_storage_xfer_acc_patch(p)        = 0._r8
           this%storage_ndemand_patch(p)   = 0._r8
+
+          ! PBuotte: begin bark beetle additions
+          this%snag1n_patch(p)            = 0._r8
+          this%snag2n_patch(p)            = 0._r8
+          this%snag3n_patch(p)            = 0._r8
+          this%snag4n_patch(p)            = 0._r8
+          this%snag5n_patch(p)            = 0._r8
+          this%snag6n_patch(p)            = 0._r8
+          this%leafsnag1n_patch(p)        = 0._r8
+          this%leafsnag2n_patch(p)        = 0._r8
+          this%leafsnag3n_patch(p)        = 0._r8
+          ! PBuootte: end bark beetle additions
 
           if ( use_crop )then
              this%grainn_patch(p)         = 0._r8
@@ -665,6 +733,45 @@ contains
     call restartvar(ncid=ncid, flag=flag, varname='pft_ntrunc', xtype=ncd_double,  &
          dim1name='pft', long_name='', units='', &
          interpinic_flag='interp', readvar=readvar, data=this%ntrunc_patch) 
+
+    ! PBuotte: begin bark beetle additions
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag1n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag1n_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag2n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag2n_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag3n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag3n_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag4n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag4n_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag5n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag5n_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='snag6n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%snag6n_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag1n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag1n_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag2n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag2n_patch)
+
+       call restartvar(ncid=ncid, flag=flag, varname='leafsnag3n', xtype=ncd_double,  &
+            dim1name='pft', long_name='', units='', &
+            interpinic_flag='interp', readvar=readvar, data=this%leafsnag3n_patch)
+       ! PBuotte: end bark beetle additions
 
     if (use_crop) then
        call restartvar(ncid=ncid, flag=flag,  varname='grainn', xtype=ncd_double,  &
@@ -889,6 +996,18 @@ contains
        this%storvegn_patch(i)           = value_patch
        this%totvegn_patch(i)            = value_patch
        this%totn_patch(i)               = value_patch
+       ! PBuotte: begin bark beetle additions
+       this%snag1n_patch(i)            = value_patch
+       this%snag2n_patch(i)            = value_patch
+       this%snag3n_patch(i)            = value_patch
+       this%snag4n_patch(i)            = value_patch
+       this%snag5n_patch(i)            = value_patch
+       this%snag6n_patch(i)            = value_patch
+       this%leafsnag1n_patch(i)            = value_patch
+       this%leafsnag2n_patch(i)            = value_patch
+       this%leafsnag3n_patch(i)            = value_patch
+       ! PBuotte: end bark beetle additions
+
     end do
 
     if ( use_crop )then
@@ -970,13 +1089,23 @@ contains
          
 	      
        ! displayed vegetation nitrogen, excluding storage (DISPVEGN)
+       ! PBuotte: added nitrogen in snag pools
        this%dispvegn_patch(p) = &
             this%leafn_patch(p)      + &
             this%frootn_patch(p)     + &
             this%livestemn_patch(p)  + &
             this%deadstemn_patch(p)  + &
             this%livecrootn_patch(p) + &
-            this%deadcrootn_patch(p)
+            this%deadcrootn_patch(p) + &
+            this%snag1n_patch(p)     + &
+            this%snag2n_patch(p)     + &
+            this%snag3n_patch(p)     + &
+            this%snag4n_patch(p)     + &
+            this%snag5n_patch(p)     + &
+            this%snag6n_patch(p)     + &
+            this%leafsnag1n_patch(p) + &
+            this%leafsnag2n_patch(p) + &
+            this%leafsnag3n_patch(p)
 
        ! stored vegetation nitrogen, including retranslocated N pool (STORVEGN)
        this%storvegn_patch(p) = &

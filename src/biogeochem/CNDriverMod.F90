@@ -7,7 +7,7 @@ module CNDriverMod
   ! !USES:
   use shr_kind_mod                    , only : r8 => shr_kind_r8
   use clm_varctl                      , only : use_c13, use_c14, use_fates, use_dynroot
-  use dynSubgridControlMod            , only : get_do_harvest
+  use dynSubgridControlMod            , only : get_do_harvest, get_do_presc_bb, get_do_prog_bb
   use decompMod                       , only : bounds_type
   use perf_mod                        , only : t_startf, t_stopf
   use clm_varctl                      , only : use_century_decomp, use_nitrif_denitrif, use_nguardrail
@@ -111,16 +111,16 @@ contains
     use CNPhenologyMod                    , only: CNPhenology
     use CNGRespMod                        , only: CNGResp
     use CNFireMethodMod                   , only: cnfire_method_type
-    use CNCIsoFluxMod                     , only: CIsoFlux1, CIsoFlux2, CIsoFlux2h, CIsoFlux3
+    use CNCIsoFluxMod                     , only: CIsoFlux1, CIsoFlux2, CIsoFlux2h, CIsoFlux2bb, CIsoFlux3
     use CNC14DecayMod                     , only: C14Decay
     use CNCStateUpdate1Mod                , only: CStateUpdate1,CStateUpdate0
-    use CNCStateUpdate2Mod                , only: CStateUpdate2, CStateUpdate2h
+    use CNCStateUpdate2Mod                , only: CStateUpdate2, CStateUpdate2h, CStateUpdate2bb
     use CNCStateUpdate3Mod                , only: CStateUpdate3
     use CNNStateUpdate1Mod                , only: NStateUpdate1
-    use CNNStateUpdate2Mod                , only: NStateUpdate2, NStateUpdate2h
+    use CNNStateUpdate2Mod                , only: NStateUpdate2, NStateUpdate2h, NStateUpdate2bb
     use CNGapMortalityMod                 , only: CNGapMortality
     use CNSharedParamsMod                 , only: use_fun
-    use dynHarvestMod                     , only: CNHarvest
+    use dynHarvestMod                     , only: CNHarvest, CNPrescBB, dynProgBB
     use SoilBiogeochemDecompCascadeBGCMod , only: decomp_rate_constants_bgc
     use SoilBiogeochemDecompCascadeCNMod  , only: decomp_rate_constants_cn
     use SoilBiogeochemCompetitionMod      , only: SoilBiogeochemCompetition
@@ -614,6 +614,13 @@ contains
     call t_stopf('CNGapMortality')
 
     !--------------------------------------------
+    ! Tree mortality from prognostic beetles
+    !--------------------------------------------
+    if (get_do_prog_bb()) then
+       call dynProgBB(bounds, temperature_inst, atm2lnd_inst, cnveg_state_inst, cnveg_carbonstate_inst)
+    end if
+
+    !--------------------------------------------
     ! Update2 (gap mortality)
     !--------------------------------------------
 
@@ -699,6 +706,49 @@ contains
             c14_cnveg_carbonstate_inst, cnveg_nitrogenstate_inst)
        call t_stopf('CNPrecisionControl')
     end if
+
+    !--------------------------------------------
+    ! Update2bb  (bark beetle mortality)
+    !--------------------------------------------
+
+    ! Set beetle mortality routine
+    ! slevis: calling CNPrescBB for get_do_presc_bb OR get_do_prog_bb, so I
+    !         recommend renaming the subroutine to CN_Bark_Beetle or something
+    if (get_do_presc_bb() .or. get_do_prog_bb()) then
+       call CNPrescBB(num_soilc, filter_soilc, num_soilp, filter_soilp, &
+            soilbiogeochem_state_inst, cnveg_carbonstate_inst, cnveg_nitrogenstate_inst, &
+            cnveg_carbonflux_inst, cnveg_nitrogenflux_inst, cnveg_state_inst)
+    end if
+
+    if ( use_c13 ) then
+       call CIsoFlux2bb(num_soilc, filter_soilc, num_soilp, filter_soilp,   &
+            soilbiogeochem_state_inst,                                     &
+            cnveg_carbonflux_inst, cnveg_carbonstate_inst,                 &
+            c13_cnveg_carbonflux_inst, c13_cnveg_carbonstate_inst,         &
+            isotope='c13')
+    end if
+    if ( use_c14 ) then
+       call CIsoFlux2bb(num_soilc, filter_soilc, num_soilp, filter_soilp, &
+            soilbiogeochem_state_inst,                                     &
+            cnveg_carbonflux_inst, cnveg_carbonstate_inst,                 &
+            c14_cnveg_carbonflux_inst, c14_cnveg_carbonstate_inst,         &
+            isotope='c14')
+    end if
+
+    call CStateUpdate2bb( num_soilc, filter_soilc,  num_soilp, filter_soilp, &
+         cnveg_carbonflux_inst, cnveg_carbonstate_inst, soilbiogeochem_carbonstate_inst)
+    if ( use_c13 ) then
+       call CStateUpdate2bb(num_soilc, filter_soilc, num_soilp, filter_soilp, &
+            c13_cnveg_carbonflux_inst, c13_cnveg_carbonstate_inst, c13_soilbiogeochem_carbonstate_inst)
+    end if
+    if ( use_c14 ) then
+       call CStateUpdate2bb(num_soilc, filter_soilc, num_soilp, filter_soilp, &
+            c14_cnveg_carbonflux_inst, c14_cnveg_carbonstate_inst, c14_soilbiogeochem_carbonstate_inst)
+    end if
+
+    call NStateUpdate2bb(num_soilc, filter_soilc, num_soilp, filter_soilp, &
+         cnveg_nitrogenflux_inst, cnveg_nitrogenstate_inst, soilbiogeochem_nitrogenstate_inst)
+
     !--------------------------------------------
     ! Calculate loss fluxes from wood products pools
     ! and update product pool state variables

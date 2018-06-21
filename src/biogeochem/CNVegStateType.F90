@@ -88,6 +88,9 @@ module CNVegStateType
      real(r8), pointer :: offset_counter_patch         (:)     ! patch offset days counter
      real(r8), pointer :: offset_fdd_patch             (:)     ! patch offset freezing degree days counter
      real(r8), pointer :: offset_swi_patch             (:)     ! patch offset soil water index
+!PBuotte: added 2 variables for FMEC leaf shed routine
+     real(r8), pointer :: shed_swi_patch               (:)     ! patch leaf shed soil water index
+     real(r8), pointer :: shed_flag_patch              (:)     ! patch flag to do leaf shed
      real(r8), pointer :: grain_flag_patch             (:)     ! patch 1: grain fill stage; 0: not
      real(r8), pointer :: lgsf_patch                   (:)     ! patch long growing season factor [0-1]
      real(r8), pointer :: bglfr_patch                  (:)     ! patch background litterfall rate (1/s)
@@ -102,6 +105,18 @@ module CNVegStateType
      real(r8), pointer :: downreg_patch                (:)     ! patch fractional reduction in GPP due to N limitation (DIM)
      real(r8), pointer :: leafcn_offset_patch          (:)     ! patch leaf C:N used by FUN
      real(r8), pointer :: plantCN_patch                (:)     ! patch plant C:N used by FUN
+
+     ! Prognostic beetle module
+     real(r8), pointer :: beetle_mort_rates_patch      (:)     ! beetle mortality rate (fraction C/yr)
+     real(r8), pointer :: B_od                         (:)     ! out-dispersing beetles (beetles)
+     real(r8), pointer :: B_id                         (:)     ! in-dispersing beetles (beetles)
+     real(r8), pointer :: BPT                          (:)     ! needed to kill one tree (beetles)
+     real(r8), pointer :: T_a                          (:)     ! susceptible to beetles (trees)
+     real(r8), pointer :: T_k                          (:)     ! killed by beetles (trees)
+     real(r8), pointer :: T_total                      (:)     ! existing (trees)
+     real(r8), pointer :: min_ag_carbon_perha          (:)     ! min amount of carbon permitted, associated with surviving dominants and subdominants, saplings, shrubs, herbaceous vegetation (Mg C/ha)
+     real(r8), pointer :: num_egglayingfemales_last_year(:)    ! number of egg-laying female beetles from last year (beetles)
+     integer,  pointer :: beetle_seed                  (:,:)   ! random number generator seed (unitless)
 
    contains
 
@@ -149,6 +164,7 @@ contains
     ! !LOCAL VARIABLES:
     integer :: begp, endp
     integer :: begc, endc
+    integer :: n          ! size of seed variables of random number generator
     logical :: allows_non_annual_delta
     !------------------------------------------------------------------------
 
@@ -252,6 +268,9 @@ contains
     allocate(this%offset_counter_patch        (begp:endp)) ;    this%offset_counter_patch        (:) = nan
     allocate(this%offset_fdd_patch            (begp:endp)) ;    this%offset_fdd_patch            (:) = nan
     allocate(this%offset_swi_patch            (begp:endp)) ;    this%offset_swi_patch            (:) = nan
+!PBuotte: added 2 variables for FMEC leaf shed routine
+    allocate(this%shed_swi_patch              (begp:endp)) ;    this%shed_swi_patch              (:) = nan
+    allocate(this%shed_flag_patch             (begp:endp)) ;    this%shed_flag_patch             (:) = nan
     allocate(this%grain_flag_patch            (begp:endp)) ;    this%grain_flag_patch            (:) = nan
     allocate(this%lgsf_patch                  (begp:endp)) ;    this%lgsf_patch                  (:) = nan
     allocate(this%bglfr_patch                 (begp:endp)) ;    this%bglfr_patch                 (:) = nan
@@ -265,7 +284,18 @@ contains
     allocate(this%downreg_patch               (begp:endp)) ;    this%downreg_patch               (:) = nan
     allocate(this%leafcn_offset_patch         (begp:endp)) ;    this%leafcn_offset_patch         (:) = nan
     allocate(this%plantCN_patch               (begp:endp)) ;    this%plantCN_patch               (:) = nan
-
+    ! slevis: for the prog. beetle module
+    allocate(this%beetle_mort_rates_patch     (begp:endp)) ;    this%beetle_mort_rates_patch     (:) = nan
+    allocate(this%B_od                        (begp:endp)) ;    this%B_od                        (:) = nan
+    allocate(this%B_id                        (begp:endp)) ;    this%B_id                        (:) = nan
+    allocate(this%BPT                         (begp:endp)) ;    this%BPT                         (:) = nan
+    allocate(this%T_a                         (begp:endp)) ;    this%T_a                         (:) = nan
+    allocate(this%T_k                         (begp:endp)) ;    this%T_k                         (:) = nan
+    allocate(this%T_total                     (begp:endp)) ;    this%T_total                     (:) = nan
+    allocate(this%min_ag_carbon_perha         (begp:endp)) ;    this%min_ag_carbon_perha         (:) = nan
+    allocate(this%num_egglayingfemales_last_year(begp:endp));   this%num_egglayingfemales_last_year(:) = 0._r8
+    call random_seed(size=n)  ! n = 2, so using dim2name='numrad' in restart
+    allocate(this%beetle_seed             (begp:endp,1:n)) ;    this%beetle_seed                 (:,:) = huge(1)
   end subroutine InitAllocate
 
   !------------------------------------------------------------------------
@@ -321,8 +351,8 @@ contains
          ptr_col=this%nfire_col)
 
     this%farea_burned_col(begc:endc) = spval
-    call hist_addfld1d (fname='FAREA_BURNED',  units='proportion/sec', &
-         avgflag='A', long_name='timestep fractional area burned', &
+    call hist_addfld1d (fname='FAREA_BURNED',  units='proportion/s', &
+         avgflag='A', long_name='fractional area burned', &
          ptr_col=this%farea_burned_col)
 
     this%baf_crop_col(begc:endc) = spval
@@ -405,6 +435,17 @@ contains
          avgflag='A', long_name='offset soil water index', &
          ptr_patch=this%offset_swi_patch, default='inactive')
 
+!PBuotte: added variables for FMEC leaf shed routine
+    this%shed_swi_patch(begp:endp) = spval
+    call hist_addfld1d (fname='SHED_SWI', units='none', &
+         avgflag='A', long_name='leafshed soil water index', &
+         ptr_patch=this%shed_swi_patch, default='inactive')
+
+    this%shed_flag_patch(begp:endp) = spval
+    call hist_addfld1d (fname='SHED_FLAG', units='none', &
+         avgflag='A', long_name='leafshed flag', &
+         ptr_patch=this%shed_flag_patch, default='inactive')
+
     this%lgsf_patch(begp:endp) = spval
     call hist_addfld1d (fname='LGSF', units='proportion', &
          avgflag='A', long_name='long growing season factor', &
@@ -464,6 +505,25 @@ contains
     call hist_addfld1d (fname='PLANTCN', units='unitless', &
          avgflag='A', long_name='Plant C:N used by FUN', &
          ptr_patch=this%plantCN_patch, default='inactive')
+
+    ! Prog. beetle variables, BEETLE_MORT_RATE, B_od, and B_id will be more
+    ! meaningful as vector output; at the grid cell level we are looking
+    ! at spatial averages across all vegetated areas.
+    this%beetle_mort_rates_patch(begp:endp) = spval
+    call hist_addfld1d (fname='BEETLE_MORT_RATE', units='per timestep', &
+         avgflag='A', long_name='Beetle mortality rate per timestep', &
+         ptr_patch=this%beetle_mort_rates_patch)
+
+    this%B_od(begp:endp) = spval
+    call hist_addfld1d (fname='B_od', units='per timestep', &
+         avgflag='A', long_name='Out-dispersing beetles per timestep', &
+         ptr_patch=this%B_od)
+
+    this%B_id(begp:endp) = spval
+    call hist_addfld1d (fname='B_in', units='per timestep', &
+         avgflag='A', long_name='In-dispersing beetles per timestep', &
+         ptr_patch=this%B_id)
+
   end subroutine InitHistory
 
   !-----------------------------------------------------------------------
@@ -610,6 +670,9 @@ contains
           this%offset_counter_patch(p)        = spval
           this%offset_fdd_patch(p)            = spval
           this%offset_swi_patch(p)            = spval
+!PBuotte: added 2 variables for FMEC leaf shed routine
+          this%shed_swi_patch(p)              = spval
+          this%shed_flag_patch(p)             = spval
           this%grain_flag_patch(p)            = spval
           this%lgsf_patch(p)                  = spval
           this%bglfr_patch(p)                 = spval
@@ -639,6 +702,9 @@ contains
           this%offset_counter_patch(p) = 0._r8
           this%offset_fdd_patch(p)     = 0._r8
           this%offset_swi_patch(p)     = 0._r8
+!P.Buotte added 2 variables for FMEC leaf shed routine
+          this%shed_swi_patch(p)       = 0._r8
+          this%shed_flag_patch(p)      = 0._r8
           this%lgsf_patch(p)           = 0._r8
           this%bglfr_patch(p)          = 0._r8
           this%bgtr_patch(p)           = 0._r8
@@ -681,6 +747,7 @@ contains
     use restUtilMod
     use ncdio_pio
     use pftconMod , only : pftcon
+    use dynSubgridControlMod, only : get_do_prog_bb
     !
     ! !ARGUMENTS:
     class(cnveg_state_type) :: this
@@ -760,6 +827,17 @@ contains
          dim1name='pft', &
          long_name='', units='', &
          interpinic_flag='interp', readvar=readvar, data=this%offset_swi_patch) 
+
+!P.Buotte added 2 variables for FMEC leaf shed routine
+    call restartvar(ncid=ncid, flag=flag, varname='shed_swi', xtype=ncd_double, &
+         dim1name='pft', &
+         long_name='', units='', &
+         interpinic_flag='interp', readvar=readvar, data=this%shed_swi_patch)
+
+    call restartvar(ncid=ncid, flag=flag, varname='shed_flag', xtype=ncd_double, &
+         dim1name='pft', &
+         long_name='', units='', &
+         interpinic_flag='interp', readvar=readvar, data=this%shed_flag_patch)
 
     call restartvar(ncid=ncid, flag=flag, varname='lgsf', xtype=ncd_double,  &
          dim1name='pft', &
@@ -907,6 +985,20 @@ contains
             dim1name='pft', long_name='', units='', &
             interpinic_flag='interp', readvar=readvar, data=this%grain_flag_patch)
     end if
+
+    if (get_do_prog_bb()) then
+       call restartvar(ncid=ncid, flag=flag, varname='num_egglayingfemales_last_year', xtype=ncd_double,  &
+            dim1name='pft', long_name='number of egg-laying female beetles', units='beetles', &
+            interpinic_flag='skip', readvar=readvar, data=this%num_egglayingfemales_last_year)
+
+       ! slevis: dim2name='numrad' works because beetle_seed's second dimension
+       ! has size 2. This will not work if numrad .ne. 2 and/or if beetle_seed's
+       ! second dimension .ne. 2
+       call restartvar(ncid=ncid, flag=flag, varname='beetle_seed', xtype=ncd_double,  &
+            dim1name='pft', dim2name='numrad', long_name='random number generator seed', units='unitless', &
+            interpinic_flag='skip', readvar=readvar, data=this%beetle_seed)
+    end if
+
     if ( flag == 'read' .and. num_reseed_patch > 0 )then
        if ( masterproc ) write(iulog, *) 'Reseed dead plants for CNVegState'
        do i = 1, num_reseed_patch

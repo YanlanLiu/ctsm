@@ -20,6 +20,7 @@ module CNNStateUpdate2Mod
   ! !PUBLIC MEMBER FUNCTIONS:
   public:: NStateUpdate2
   public:: NStateUpdate2h
+  public:: NStateUpdate2bb
   !-----------------------------------------------------------------------
 
 contains
@@ -234,5 +235,157 @@ contains
     end associate
 
   end subroutine NStateUpdate2h
+
+!PBuotte: begin bark beetle additions
+  !-----------------------------------------------------------------------
+  subroutine NStateUpdate2bb(num_soilc, filter_soilc, num_soilp, filter_soilp, &
+       cnveg_nitrogenflux_inst, cnveg_nitrogenstate_inst, soilbiogeochem_nitrogenstate_inst)
+    !
+    ! !DESCRIPTION:
+    ! Update all the prognostic nitrogen state
+    ! variables affected by bark beetle mortality fluxes
+    ! NOTE - associate statements have been removed where there are
+    ! no science equations. This increases readability and maintainability
+    !
+    ! !ARGUMENTS:
+    integer                                 , intent(in)    :: num_soilc       ! number of soil columns in filter
+    integer                                 , intent(in)    :: filter_soilc(:) ! filter for soil columns
+    integer                                 , intent(in)    :: num_soilp       ! number of soil patches in filter
+    integer                                 , intent(in)    :: filter_soilp(:) ! filter for soil patches
+    type(cnveg_nitrogenflux_type)           , intent(in)    :: cnveg_nitrogenflux_inst
+    type(cnveg_nitrogenstate_type)          , intent(inout) :: cnveg_nitrogenstate_inst
+    type(soilbiogeochem_nitrogenstate_type) , intent(inout) :: soilbiogeochem_nitrogenstate_inst
+    !
+    ! !LOCAL VARIABLES:
+    integer :: c,p,j,l ! indices
+    integer :: fp,fc   ! lake filter indices
+    real(r8):: dt      ! radiation time step (seconds)
+    !-----------------------------------------------------------------------
+
+    associate(                                 & 
+         nf_veg  => cnveg_nitrogenflux_inst  , &
+         ns_veg  => cnveg_nitrogenstate_inst , &
+         ns_soil => soilbiogeochem_nitrogenstate_inst   &
+         )
+
+      ! set time steps
+      dt = real( get_step_size(), r8 )
+
+      ! column-level nitrogen fluxes from bark beetle mortality
+
+      do j = 1,nlevdecomp
+         do fc = 1,num_soilc
+            c = filter_soilc(fc)
+            ns_soil%decomp_npools_vr_col(c,j,i_met_lit) = &
+                 ns_soil%decomp_npools_vr_col(c,j,i_met_lit) + nf_veg%beetle_n_to_litr_met_n_col(c,j) * dt
+            ns_soil%decomp_npools_vr_col(c,j,i_cel_lit) = &
+                 ns_soil%decomp_npools_vr_col(c,j,i_cel_lit) + nf_veg%beetle_n_to_litr_cel_n_col(c,j) * dt
+            ns_soil%decomp_npools_vr_col(c,j,i_lig_lit) = &
+                 ns_soil%decomp_npools_vr_col(c,j,i_lig_lit) + nf_veg%beetle_n_to_litr_lig_n_col(c,j) * dt
+            ns_soil%decomp_npools_vr_col(c,j,i_cwd)     = &
+                 ns_soil%decomp_npools_vr_col(c,j,i_cwd)     + nf_veg%beetle_n_to_cwdn_col(c,j)       * dt
+         end do
+      end do
+
+      ! patch-level nitrogen fluxes from bark beetle mortality
+
+      do fp = 1,num_soilp
+         p = filter_soilp(fp)
+
+         ! displayed pools
+         ns_veg%leafn_patch(p) = ns_veg%leafn_patch(p)                           &
+              - nf_veg%bb_leafn_to_leafsnag1n_patch(p) * dt
+         ns_veg%frootn_patch(p) = ns_veg%frootn_patch(p)                         &
+              - nf_veg%bb_frootn_to_litter_patch(p) * dt
+         ns_veg%livestemn_patch(p) = ns_veg%livestemn_patch(p)                   &
+              - nf_veg%bb_livestemn_to_snag1n_patch(p) * dt
+         ns_veg%deadstemn_patch(p) = ns_veg%deadstemn_patch(p)                   &
+              - nf_veg%bb_deadstemn_to_snag1n_patch(p) * dt
+         ns_veg%deadstemn_patch(p) = ns_veg%deadstemn_patch(p)                   &
+              - nf_veg%bb_deadstemn_to_prod10n_patch(p) * dt
+         ns_veg%deadstemn_patch(p) = ns_veg%deadstemn_patch(p)                   &
+              - nf_veg%bb_deadstemn_to_prod100n_patch(p)* dt
+         ns_veg%livecrootn_patch(p) = ns_veg%livecrootn_patch(p)                 &
+              - nf_veg%bb_liverootn_to_litter_patch(p) * dt
+         ns_veg%deadcrootn_patch(p) = ns_veg%deadcrootn_patch(p)                 &
+              - nf_veg%bb_deadrootn_to_litter_patch(p) * dt
+         ns_veg%retransn_patch(p) = ns_veg%retransn_patch(p)                     &
+              - nf_veg%bb_retransn_to_litter_patch(p) * dt
+
+         ! storage pools
+         ns_veg%leafn_storage_patch(p) = ns_veg%leafn_storage_patch(p)           &
+              - nf_veg%bb_leafn_storage_to_leafsnag1n_patch(p) * dt
+         ns_veg%frootn_storage_patch(p) = ns_veg%frootn_storage_patch(p)         &
+              - nf_veg%bb_frootn_storage_to_litter_patch(p) * dt
+         ns_veg%livestemn_storage_patch(p) = ns_veg%livestemn_storage_patch(p)   &
+              - nf_veg%bb_livestemn_storage_to_snag1n_patch(p) * dt
+         ns_veg%deadstemn_storage_patch(p) = ns_veg%deadstemn_storage_patch(p)   &
+              - nf_veg%bb_deadstemn_storage_to_snag1n_patch(p) * dt
+         ns_veg%livecrootn_storage_patch(p) = ns_veg%livecrootn_storage_patch(p) &
+              - nf_veg%bb_liverootn_storage_to_litter_patch(p) * dt
+         ns_veg%deadcrootn_storage_patch(p) = ns_veg%deadcrootn_storage_patch(p) &
+              - nf_veg%bb_deadrootn_storage_to_litter_patch(p) * dt
+
+         ! transfer pools
+         ns_veg%leafn_xfer_patch(p) = ns_veg%leafn_xfer_patch(p)                 &
+              - nf_veg%bb_leafn_xfer_to_leafsnag1n_patch(p) *dt
+         ns_veg%frootn_xfer_patch(p) = ns_veg%frootn_xfer_patch(p)               &
+              - nf_veg%bb_frootn_xfer_to_litter_patch(p) *dt
+         ns_veg%livestemn_xfer_patch(p) = ns_veg%livestemn_xfer_patch(p)         &
+              - nf_veg%bb_livestemn_xfer_to_snag1n_patch(p) *dt
+         ns_veg%deadstemn_xfer_patch(p) = ns_veg%deadstemn_xfer_patch(p)         &
+              - nf_veg%bb_deadstemn_xfer_to_snag1n_patch(p) *dt
+         ns_veg%livecrootn_xfer_patch(p) = ns_veg%livecrootn_xfer_patch(p)       &
+              - nf_veg%bb_liverootn_xfer_to_litter_patch(p) *dt
+         ns_veg%deadcrootn_xfer_patch(p) = ns_veg%deadcrootn_xfer_patch(p)       &
+              - nf_veg%bb_deadrootn_xfer_to_litter_patch(p) *dt
+         
+         ! snag pools
+         ns_veg%snag1n_patch(p) = ns_veg%snag1n_patch(p)                            &
+              - nf_veg%snag1n_to_snag2n_patch(p) * dt
+         ns_veg%snag2n_patch(p) = ns_veg%snag2n_patch(p)                            &
+              - nf_veg%snag2n_to_snag3n_patch(p) * dt
+         ns_veg%snag3n_patch(p) = ns_veg%snag3n_patch(p)                            &
+              - nf_veg%snag3n_to_snag4n_patch(p) * dt
+         ns_veg%snag4n_patch(p) = ns_veg%snag4n_patch(p)                            &
+              - nf_veg%snag4n_to_snag5n_patch(p) * dt
+         ns_veg%snag5n_patch(p) = ns_veg%snag5n_patch(p)                            &
+              - nf_veg%snag5n_to_snag6n_patch(p) * dt
+         ns_veg%snag6n_patch(p) = ns_veg%snag6n_patch(p)                            &
+              - nf_veg%snag6n_to_litter_patch(p) * dt
+         ns_veg%leafsnag1n_patch(p) = ns_veg%leafsnag1n_patch(p)                    &
+              - nf_veg%leafsnag1n_to_leafsnag2n_patch(p) * dt
+         ns_veg%leafsnag2n_patch(p) = ns_veg%leafsnag2n_patch(p)                    &
+              - nf_veg%leafsnag2n_to_leafsnag3n_patch(p) * dt
+         ns_veg%leafsnag3n_patch(p) = ns_veg%leafsnag3n_patch(p)                    &
+              - nf_veg%leafsnag3n_to_litter_patch(p) * dt
+
+         ns_veg%leafsnag1n_patch(p) = ns_veg%leafsnag1n_patch(p)                    &
+              + nf_veg%bb_leafn_to_leafsnag1n_patch(p) * dt
+         ns_veg%leafsnag2n_patch(p) = ns_veg%leafsnag2n_patch(p)                    &
+              + nf_veg%leafsnag1n_to_leafsnag2n_patch(p) * dt
+         ns_veg%leafsnag3n_patch(p) = ns_veg%leafsnag3n_patch(p)                    &
+              + nf_veg%leafsnag2n_to_leafsnag3n_patch(p) * dt
+         ns_veg%snag1n_patch(p) = ns_veg%snag1n_patch(p)                            &
+              + nf_veg%bb_livestemn_to_snag1n_patch(p) * dt
+         ns_veg%snag1n_patch(p) = ns_veg%snag1n_patch(p)                            &
+              + nf_veg%bb_deadstemn_to_snag1n_patch(p) * dt
+         ns_veg%snag2n_patch(p) = ns_veg%snag2n_patch(p)                            &
+              + nf_veg%snag1n_to_snag2n_patch(p) * dt
+         ns_veg%snag3n_patch(p) = ns_veg%snag3n_patch(p)                            &
+              + nf_veg%snag2n_to_snag3n_patch(p) * dt
+         ns_veg%snag4n_patch(p) = ns_veg%snag4n_patch(p)                            &
+              + nf_veg%snag3n_to_snag4n_patch(p) * dt
+         ns_veg%snag5n_patch(p) = ns_veg%snag5n_patch(p)                            &
+              + nf_veg%snag4n_to_snag5n_patch(p) * dt
+         ns_veg%snag6n_patch(p) = ns_veg%snag6n_patch(p)                            &
+              + nf_veg%snag5n_to_snag6n_patch(p) * dt
+
+      end do
+
+    end associate
+
+  end subroutine NStateUpdate2bb
+!Pbuotte: end bark beetle additions
 
 end module CNNStateUpdate2Mod

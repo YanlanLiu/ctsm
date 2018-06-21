@@ -272,11 +272,15 @@ contains
            if (pi <=  col%npatches(c)) then
               p = col%patchi(c) + pi - 1
               ! For crop veg types
-              if( patch%itype(p) > nc4_grass )then
+!             if( patch%itype(p) > nc4_grass )then
+              ! PBuotte: set to our highest tree PFT instead of c4grass
+              if( patch%itype(p) > 14 )then
                  cropf_col(c) = cropf_col(c) + patch%wtcol(p)
               end if
               ! For natural vegetation (non-crop and non-bare-soil)
-              if( patch%itype(p) >= ndllf_evr_tmp_tree .and. patch%itype(p) <= nc4_grass )then
+!             if( patch%itype(p) >= ndllf_evr_tmp_tree .and. patch%itype(p) <= nc4_grass )then
+              ! PBuotte: modified to bound our forest PFTs
+              if( patch%itype(p) >= 1 .and. patch%itype(p) <= 14 )then
                  lfwt(c) = lfwt(c) + patch%wtcol(p)
               end if
            end if
@@ -298,7 +302,9 @@ contains
               ! column-level litter carbon
               ! is available, so we use leaf carbon to estimate the
               ! litter carbon for crop PFTs
-              if( patch%itype(p) > nc4_grass .and. patch%wtcol(p) > 0._r8 .and. leafc_col(c) > 0._r8 )then
+!             if( patch%itype(p) > nc4_grass .and. patch%wtcol(p) > 0._r8 .and. leafc_col(c) > 0._r8 )then
+              ! PBuotte:modified for our highest forest PFT
+              if( patch%itype(p) > 14 .and. patch%wtcol(p) > 0._r8 .and. leafc_col(c) > 0._r8 )then
                  fuelc_crop(c)=fuelc_crop(c) + (leafc(p) + leafc_storage(p) + &
                       leafc_xfer(p))*patch%wtcol(p)/cropf_col(c)     + &
                       totlitc(c)*leafc(p)/leafc_col(c)*patch%wtcol(p)/cropf_col(c)
@@ -333,7 +339,9 @@ contains
               p = col%patchi(c) + pi - 1
 
               ! For non-crop -- natural vegetation and bare-soil
-              if( patch%itype(p)  <  nc3crop .and. cropf_col(c)  <  1.0_r8 )then
+!             if( patch%itype(p)  <  nc3crop .and. cropf_col(c)  <  1.0_r8 )then
+              ! PBuotte: modified for our forest PFTs
+              if( patch%itype(p)  <  15 .and. cropf_col(c)  <  1.0_r8 )then
                  if( .not. shr_infnan_isnan(btran2(p))) then
                     if (btran2(p)  <=  1._r8 ) then
                        btran_col(c) = btran_col(c)+btran2(p)*patch%wtcol(p)
@@ -360,16 +368,18 @@ contains
                  ! forest (because nbrdlf_evr_trp_tree+nbrdlf_dcd_trp_tree < 0.6),
                  ! whereas in fact the land cover change occurred when the column *was*
                  ! tropical closed forest.
-                 if( patch%itype(p) == nbrdlf_evr_trp_tree .and. patch%wtcol(p)  >  0._r8 )then
-                    trotr1_col(c)=trotr1_col(c)+patch%wtcol(p)
-                 end if
-                 if( patch%itype(p) == nbrdlf_dcd_trp_tree .and. patch%wtcol(p)  >  0._r8 )then
-                    trotr2_col(c)=trotr2_col(c)+patch%wtcol(p)
-                 end if
+                 ! PBuotte: commented out because we do not have tropical PFTs
+!                if( patch%itype(p) == nbrdlf_evr_trp_tree .and. patch%wtcol(p)  >  0._r8 )then
+!                   trotr1_col(c)=trotr1_col(c)+patch%wtcol(p)
+!                end if
+!                if( patch%itype(p) == nbrdlf_dcd_trp_tree .and. patch%wtcol(p)  >  0._r8 )then
+!                   trotr2_col(c)=trotr2_col(c)+patch%wtcol(p)
+!                end if
 
-                 if (transient_landcover) then
-                    if( patch%itype(p) == nbrdlf_evr_trp_tree .or. patch%itype(p) == nbrdlf_dcd_trp_tree )then
-                       if(dwt_smoothed(p) < 0._r8)then
+                 ! PBuotte: commented out because we do not have tropical PFTs
+!                if (transient_landcover) then
+!                   if( patch%itype(p) == nbrdlf_evr_trp_tree .or. patch%itype(p) == nbrdlf_dcd_trp_tree )then
+!                      if(dwt_smoothed(p) < 0._r8)then
                           ! Land cover change in CLM happens all at once on the first time
                           ! step of the year. However, the fire code needs deforestation
                           ! rates throughout the year, in order to combine these
@@ -388,10 +398,10 @@ contains
                           ! different seasons. But having deforestation spread evenly
                           ! throughout the year is much better than having it all
                           ! concentrated on January 1.)
-                          dtrotr_col(c)=dtrotr_col(c)-dwt_smoothed(p)
-                       end if
-                    end if
-                 end if
+!                         dtrotr_col(c)=dtrotr_col(c)-dwt_smoothed(p)
+!                      end if
+!                   end if
+!                end if
                  rootc_col(c) = rootc_col(c) + (frootc(p) + frootc_storage(p) + &
                       frootc_xfer(p) + deadcrootc(p) +                &
                       deadcrootc_storage(p) + deadcrootc_xfer(p) +    &
@@ -409,18 +419,19 @@ contains
                        ! For NOT bare-soil
                        if( patch%itype(p)  /=  noveg )then
                           ! For shrub and grass (crop already excluded above)
-                          if( patch%itype(p)  >=  nbrdlf_evr_shrub )then      !for shurb and grass
-                             lgdp_col(c)  = lgdp_col(c) + (0.1_r8 + 0.9_r8*    &
-                                  exp(-1._r8*SHR_CONST_PI* &
-                                  (gdp_lf(c)/8._r8)**0.5_r8))*patch%wtcol(p) &
-                                  /(1.0_r8 - cropf_col(c))
-                             lgdp1_col(c) = lgdp1_col(c) + (0.2_r8 + 0.8_r8*   &
-                                  exp(-1._r8*SHR_CONST_PI* &
-                                  (gdp_lf(c)/7._r8)))*patch%wtcol(p)/lfwt(c)
-                             lpop_col(c)  = lpop_col(c) + (0.2_r8 + 0.8_r8*    &
-                                  exp(-1._r8*SHR_CONST_PI* &
-                                  (hdmlf/450._r8)**0.5_r8))*patch%wtcol(p)/lfwt(c)
-                          else   ! for trees
+                          ! PBuotte: commented out; we do not have shrub/grass
+!                         if( patch%itype(p)  >=  nbrdlf_evr_shrub )then      !for shurb and grass
+!                            lgdp_col(c)  = lgdp_col(c) + (0.1_r8 + 0.9_r8*    &
+!                                 exp(-1._r8*SHR_CONST_PI* &
+!                                 (gdp_lf(c)/8._r8)**0.5_r8))*patch%wtcol(p) &
+!                                 /(1.0_r8 - cropf_col(c))
+!                            lgdp1_col(c) = lgdp1_col(c) + (0.2_r8 + 0.8_r8*   &
+!                                 exp(-1._r8*SHR_CONST_PI* &
+!                                 (gdp_lf(c)/7._r8)))*patch%wtcol(p)/lfwt(c)
+!                            lpop_col(c)  = lpop_col(c) + (0.2_r8 + 0.8_r8*    &
+!                                 exp(-1._r8*SHR_CONST_PI* &
+!                                 (hdmlf/450._r8)**0.5_r8))*patch%wtcol(p)/lfwt(c)
+!                         else   ! for trees
                              if( gdp_lf(c)  >  20._r8 )then
                                 lgdp_col(c)  =lgdp_col(c)+cnfire_const%occur_hi_gdp_tree*patch%wtcol(p)/(1.0_r8 - cropf_col(c))
                              else    
@@ -438,7 +449,7 @@ contains
                              lpop_col(c) = lpop_col(c) + (0.4_r8 + 0.6_r8*    &
                                   exp(-1._r8*SHR_CONST_PI* &
                                   (hdmlf/125._r8)))*patch%wtcol(p)/lfwt(c) 
-                          end if
+!                         end if
                        end if
                     else
                        lgdp_col(c)  = lgdp_col(c)+patch%wtcol(p)/(1.0_r8 - cropf_col(c))
@@ -494,7 +505,9 @@ contains
            if (pi <=  col%npatches(c)) then
               p = col%patchi(c) + pi - 1
               ! For crop
-              if( forc_t(c)  >=  SHR_CONST_TKFRZ .and. patch%itype(p)  >  nc4_grass .and.  &
+!             if( forc_t(c)  >=  SHR_CONST_TKFRZ .and. patch%itype(p)  >  nc4_grass .and.  &
+              ! PBuotte: changed from nc4_grass to 14
+              if( forc_t(c)  >=  SHR_CONST_TKFRZ .and. patch%itype(p)  >  14 .and.  &
                    kmo == abm_lf(c) .and. forc_rain(c)+forc_snow(c) == 0._r8  .and. &
                    burndate(p) >= 999 .and. patch%wtcol(p)  >  0._r8 )then ! catch  crop burn time
 
@@ -898,7 +911,9 @@ contains
         p = filter_soilp(fp)
         c = patch%column(p)
 
-        if( patch%itype(p) < nc3crop .and. cropf_col(c) < 1.0_r8)then
+!       if( patch%itype(p) < nc3crop .and. cropf_col(c) < 1.0_r8)then
+        ! PBuotte: modified to select our forest PFTs
+        if( patch%itype(p) < 15 .and. cropf_col(c) < 1.0_r8)then
            ! For non-crop (bare-soil and natural vegetation)
            if (transient_landcover) then
               f = (fbac(c)-baf_crop(c))/(1.0_r8-cropf_col(c))
